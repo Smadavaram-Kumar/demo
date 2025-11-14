@@ -21,7 +21,7 @@ jobs:
       with:
         environment-url: 'https://org23b23f97.crm.dynamics.com'
         tenant-id: ${{ secrets.PP_TENANT_ID }}
-        client-id: ${{ secrets.PP_CLIENT_ID }}
+        app-id: ${{ secrets.PP_CLIENT_ID }}
         client-secret: ${{ secrets.PP_CLIENT_SECRET }}
         solution-name: solutionone
         solution-output-file: 'solutionone.zip'
