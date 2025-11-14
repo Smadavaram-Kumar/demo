@@ -25,9 +25,3 @@ jobs:
         solution-name: solutionone
         solution-output-file: 'solutionone.zip'
         working-directory: 'out'
-
-    - name: Upload exported solution
-      uses: actions/upload-artifact@v3
-      with:
-        name: solutionone
-        path: out/solutionone.zip
