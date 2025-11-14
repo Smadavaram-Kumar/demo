@@ -20,8 +20,9 @@ jobs:
       uses: microsoft/powerplatform-actions/export-solution@v1
       with:
         environment-url: 'https://org23b23f97.crm.dynamics.com'
-        user-name: 'sm@M365x83721890.onmicrosoft.com'
-        password-secret: ${{ secrets.MYPASSWORD }}
+        tenant-id: ${{ secrets.PP_TENANT_ID }}
+        client-id: ${{ secrets.PP_CLIENT_ID }}
+        client-secret: ${{ secrets.PP_CLIENT_SECRET }}
         solution-name: solutionone
         solution-output-file: 'solutionone.zip'
         working-directory: 'out'
