@@ -17,7 +17,7 @@ jobs:
       run: mkdir -p out
 
     - name: Export Solution
-      uses: microsoft/powerplatform-actions/export-solution@v0
+      uses: microsoft/powerplatform-actions/export-solution@v1
       with:
         environment-url: 'https://org23b23f97.crm.dynamics.com'
         tenant-id: ${{ secrets.PP_TENANT_ID }}
