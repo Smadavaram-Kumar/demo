@@ -44,7 +44,7 @@ jobs:
         app-id: ${{ secrets.PP_CLIENT_ID }}
         client-secret: ${{ secrets.PP_CLIENT_SECRET }}
         solution-file: 'out/solutionone.zip'
-        run-asynchronously: true
-        force-overwrite: true
-        publish-changes: true
+        #run-asynchronously: true
+        #force-overwrite: true
+        #publish-changes: true
 
