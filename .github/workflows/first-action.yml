@@ -15,6 +15,7 @@ jobs:
 
     - name: Create output directory
       run: mkdir -p out
+      
 
     - name: Export Solution
       uses: microsoft/powerplatform-actions/export-solution@v1
@@ -26,3 +27,24 @@ jobs:
         solution-name: solutionone
         solution-output-file: 'solutionone.zip'
         working-directory: 'out'
+
+    - name: Unpack Solution
+      uses: microsoft/powerplatform-actions/unpack-solution@v1
+      with:
+        solution-file: 'out/solutionone.zip'
+        solution-folder: 'out/solutions/solutionone'
+        solution-type: 'Unmanaged'
+        overwrite-files: true
+
+    - name: import Solution
+      uses: microsoft/powerplatform-actions/import-solution@v1
+      with:
+        environment-url: 'https://orgd93932c9.crm.dynamics.com'
+        tenant-id: ${{ secrets.PP_TENANT_ID }}
+        app-id: ${{ secrets.PP_CLIENT_ID }}
+        client-secret: ${{ secrets.PP_CLIENT_SECRET }}
+        solution-file: 'out/solutionone.zip'
+        run-asynchronously: true
+        force-overwrite: true
+        publish-changes: true
+
