@@ -23,8 +23,13 @@ jobs:
       RUNNER_DEBUG: 1
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+    
     - name: Create Developer Environment
-      uses: microsoft/powerplatform-actions/create-environment@v0
+      uses: microsoft/powerplatform-actions/create-environment@v1
       with:
         tenant-id: ${{ secrets.PP_TENANT_ID }}
         app-id: ${{ secrets.PP_CLIENT_ID }}
@@ -34,7 +39,7 @@ jobs:
         domain: ${{ github.event.inputs.env_name }}Dev
 
     - name: assign-user to developer environment
-      uses: microsoft/powerplatform-actions/assign-user@v0
+      uses: microsoft/powerplatform-actions/assign-user@v1
       with:
         tenant-id: ${{ secrets.PP_TENANT_ID }}
         app-id: ${{ secrets.PP_CLIENT_ID }}
