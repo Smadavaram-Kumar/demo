@@ -27,6 +27,9 @@ jobs:
       uses: actions/checkout@v4
       with:
         lfs: true
+
+    - name: Install Power Platform Actions dependencies
+      uses: microsoft/powerplatform-actions/actions-install@v1
     
     - name: Create Developer Environment
       uses: microsoft/powerplatform-actions/create-environment@v1
