@@ -43,7 +43,7 @@ jobs:
         overwrite-files: true
         
     - name: Add Power Platform CLI to PATH
-      run: echo "$POWERPLATFORMTOOLS_PACPATH" >> $GITHUB_PATH
+      run: echo "$POWERPLATFORMTOOLS_PACPATH/tools" >> $GITHUB_PATH
       
     - name: Generate deployment settings
       run: |
