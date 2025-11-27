@@ -48,7 +48,7 @@ jobs:
         ls -R "$POWERPLATFORMTOOLS_PACPATH"     
         
     - name: Add Power Platform CLI to PATH
-      run: echo "$POWERPLATFORMTOOLS_PACPATH/tools" >> $GITHUB_PATH
+      run: echo "/tmp/powerplatform-actions-ZVUi5H/pac" >> $GITHUB_PATH
       
     - name: Generate deployment settings
       run: |
