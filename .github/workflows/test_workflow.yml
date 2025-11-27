@@ -41,7 +41,10 @@ jobs:
         solution-folder: 'out/solutions/solutionone'
         solution-type: 'Unmanaged'
         overwrite-files: true
-
+        
+    - name: Add Power Platform CLI to PATH
+      run: echo "$POWERPLATFORMTOOLS_PACPATH" >> $GITHUB_PATH
+      
     - name: Generate deployment settings
       run: |
         pac solution create-settings \
