@@ -1,4 +1,4 @@
-name: first workflow
+name: test workflow
 
 run-name: Deploying solution from dev to test environment
 
