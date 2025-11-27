@@ -36,14 +36,27 @@ jobs:
         solution-type: 'Unmanaged'
         overwrite-files: true
 
-    - name: import Solution
-      uses: microsoft/powerplatform-actions/import-solution@v1
-      with:
-        environment-url: 'https://orgd93932c9.crm.dynamics.com'
-        tenant-id: ${{ secrets.PP_TENANT_ID }}
-        app-id: ${{ secrets.PP_CLIENT_ID }}
-        client-secret: ${{ secrets.PP_CLIENT_SECRET }}
-        solution-file: 'out/solutionone.zip'
+    - name: Generate deployment settings
+      run: |
+        pac solution create-settings \
+          --solution-zip out/solutionone.zip \
+          out/solutionone_deploymentsettings.json
+          
+    - name: List connections in Target
+      run: |
+        pac connection list \
+          --environment ${{ secrets.PP_TEST_ENV_ID }} \
+          --json > out/connections.json
+
+          
+   # - name: import Solution
+    #  uses: microsoft/powerplatform-actions/import-solution@v1
+     # with:
+      #  environment-url: 'https://orgd93932c9.crm.dynamics.com'
+       # tenant-id: ${{ secrets.PP_TENANT_ID }}
+        #app-id: ${{ secrets.PP_CLIENT_ID }}
+        #client-secret: ${{ secrets.PP_CLIENT_SECRET }}
+        #solution-file: 'out/solutionone.zip'
         #run-asynchronously: true
         #force-overwrite: true
         #publish-changes: true
