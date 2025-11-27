@@ -42,6 +42,11 @@ jobs:
         solution-type: 'Unmanaged'
         overwrite-files: true
         
+    - name: Show PAC install directory contents
+      run: |
+        echo "PAC path: $POWERPLATFORMTOOLS_PACPATH"
+        ls -R "$POWERPLATFORMTOOLS_PACPATH"     
+        
     - name: Add Power Platform CLI to PATH
       run: echo "$POWERPLATFORMTOOLS_PACPATH/tools" >> $GITHUB_PATH
       
