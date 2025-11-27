@@ -7,14 +7,15 @@ on:
 
 jobs:
   first-job:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
+    
     - name: Install Power Platform Tools
       uses: microsoft/powerplatform-actions/actions-install@v1.9.1
 
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v5
       with:
         lfs: true
 
@@ -33,20 +34,18 @@ jobs:
         solution-name: solutionone
         solution-output-file: 'solutionone.zip'
         working-directory: 'out'
-
-    - name: Unpack Solution
-      uses: microsoft/powerplatform-actions/unpack-solution@v1
-      with:
-        solution-file: 'out/solutionone.zip'
-        solution-folder: 'out/solutions/solutionone'
-        solution-type: 'Unmanaged'
-        overwrite-files: true
         
     - name: Show PAC install directory contents
       run: |
         echo "PAC path: $POWERPLATFORMTOOLS_PACPATH"
-        ls -R "$POWERPLATFORMTOOLS_PACPATH"     
+        ls -R "$POWERPLATFORMTOOLS_PACPATH"  
         
+    - name: Search entire /tmp for pac
+      run: find /tmp -name pac -type f -perm -u+x    
+
+    - name: Where is pac?
+      run: which pac || echo "pac not found"
+      
     - name: Add Power Platform CLI to PATH
       run: echo "/tmp/powerplatform-actions-ZVUi5H/pac" >> $GITHUB_PATH
       
