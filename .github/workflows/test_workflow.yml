@@ -60,7 +60,7 @@ jobs:
     # EXPORT (Dev) -> Managed ZIP
     # -----------------------
     - name: Export managed solution from Dev
-      uses: microsoft/powerplatform-actions/export-solution@v2
+      uses: microsoft/powerplatform-actions/export-solution@v1
       with:
         credentials-type: 'serviceprincipal'
         tenant-id: ${{ env.AZURE_TENANT_ID }}
