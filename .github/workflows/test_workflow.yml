@@ -62,15 +62,13 @@ jobs:
     - name: Export managed solution from Dev
       uses: microsoft/powerplatform-actions/export-solution@v1
       with:
-        credentials-type: 'serviceprincipal'
-        tenant-id: ${{ env.AZURE_TENANT_ID }}
-        application-id: ${{ env.AZURE_CLIENT_ID }}
-        client-secret: ${{ env.AZURE_CLIENT_SECRET }}
         environment-url: ${{ env.DEV_ENV_URL }}
+        app-id: ${{ env.AZURE_CLIENT_ID }}
+        client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
         solution-name: ${{ github.event.inputs.solution_name }}
-        create-managed-package: 'true'            # explicitly create managed package
-        unpack-solution: 'false'                  # we will unpack manually (or with pac) below
-        output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+        solution-output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+        managed: true
 
 
     - name: List exported managed package
