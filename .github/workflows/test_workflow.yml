@@ -18,7 +18,7 @@ env:
 
   # Environments (store as repo secrets)
   DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'     # e.g. https://org-<id>.crm.dynamics.com
- # TEST_ENV_URL: ${{ secrets.PP_TEST_ENV_URL }}
+  TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
 
   # Local folder structure on the runner (you can change these)
   EXPORT_FOLDER: ./exported                 # where CLI writes the exported zip(s)
@@ -76,6 +76,41 @@ jobs:
         echo "Listing managed folder contents:"
         ls -la "${{ env.MANAGED_FOLDER }}" || true
         echo "Path used for solution zip: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+
+
+    # -----------------------
+    # UNPACK the managed ZIP on the runner
+    # -----------------------
+    - name: Unpack managed solution zip (unzip)
+      id: unpack
+      run: |
+        MANAGED_ZIP="${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+        echo "Unpacking $MANAGED_ZIP to ${{ env.UNPACKED_FOLDER }}"
+        if [ ! -f "$MANAGED_ZIP" ]; then
+          echo "ERROR: Managed ZIP not found at $MANAGED_ZIP"
+          ls -la "${{ env.MANAGED_FOLDER }}" || true
+          exit 1
+        fi
+        # try a plain unzip first (most PAC exported zips are standard zips)
+        unzip -q "$MANAGED_ZIP" -d "${{ env.UNPACKED_FOLDER }}" || {
+          echo "unzip failed — attempting pac solution unpack (if available)"
+          # fallback to pac solution unpack if installed by actions-install
+          pac solution unpack --zipfile "$MANAGED_ZIP" --folder "${{ env.UNPACKED_FOLDER }}" || {
+            echo "ERROR: both unzip and pac solution unpack failed"; exit 2;
+          }
+        }
+        echo "Unpack complete. Listing unpacked folder:"
+        ls -la "${{ env.UNPACKED_FOLDER }}" || true
+
+    # Optional: inspect a couple of typical files (small debug)
+    - name: Show a few unpacked items (debug)
+      run: |
+        echo "Top-level of unpacked:"
+        ls -la "${{ env.UNPACKED_FOLDER }}" | sed -n '1,200p' || true
+        echo "If Customizations.xml present, show head:"
+        if [ -f "${{ env.UNPACKED_FOLDER }}/Customizations.xml" ]; then
+          head -n 40 "${{ env.UNPACKED_FOLDER }}/Customizations.xml"
+        fi
 
 
         
