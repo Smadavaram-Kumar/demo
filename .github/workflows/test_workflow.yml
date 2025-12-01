@@ -5,61 +5,110 @@ run-name: Deploying solution from dev to test environment
 on:
   workflow_dispatch:
 
+
+on:
+  workflow_dispatch:
+    inputs:
+      solution_name:
+        description: 'Solution unique name (not display name).'
+        required: true
+
+env:
+  # Azure AD / Service Principal (store as repo secrets)
+  AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+
+  # Environments (store as repo secrets)
+  DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'     # e.g. https://org-<id>.crm.dynamics.com
+ # TEST_ENV_URL: ${{ secrets.PP_TEST_ENV_URL }}
+
+  # Local folder structure on the runner (you can change these)
+  EXPORT_FOLDER: ./exported                 # where CLI writes the exported zip(s)
+  DEPLOY_FOLDER: ./deploy                   # staging folder used before import
+  SOLUTION_FOLDER: ./exported/solutions     # generic solution folder path
+  MANAGED_FOLDER: ./exported/managed        # store managed zip here
+  UNPACKED_FOLDER: ./exported/unpacked     # unpacked folder (if using pac unpack or unzip)
+
+  # Output zip filename (will use solution_name input + suffix)
+  SOLUTION_ZIP_NAME: ${{ github.event.inputs.solution_name }}.managed.zip
+
+
 jobs:
   first-job:
     runs-on: windows-latest
 
     steps:
     
-    - name: Install Power Platform Tools
-      uses: microsoft/powerplatform-actions/actions-install@v1.9.1
-
     - name: Checkout code
       uses: actions/checkout@v5
       with:
         lfs: true
 
+    - name: Ensure folders exist
+      run: |
+        echo "Creating folder structure on runner..."
+        mkdir -p "${{ env.EXPORT_FOLDER }}" "${{ env.MANAGED_FOLDER }}" "${{ env.UNPACKED_FOLDER }}" "${{ env.DEPLOY_FOLDER }}"
+        ls -la
 
-    - name: Create output directory
-      run: mkdir -p out
+    - name: Install Power Platform CLI / Tools
+      # installs the pac wrapper and related tooling used by the export/import actions
+      uses: microsoft/powerplatform-actions/actions-install@v1
+
+
+    #- name: Create output directory
+    #  run: mkdir -p out
       
-
-    - name: Export Solution
-      uses: microsoft/powerplatform-actions/export-solution@v1
+    # -----------------------
+    # EXPORT (Dev) -> Managed ZIP
+    # -----------------------
+    - name: Export managed solution from Dev
+      uses: microsoft/powerplatform-actions/export-solution@v2
       with:
-        environment-url: 'https://org23b23f97.crm.dynamics.com'
-        tenant-id: ${{ secrets.PP_TENANT_ID }}
-        app-id: ${{ secrets.PP_CLIENT_ID }}
-        client-secret: ${{ secrets.PP_CLIENT_SECRET }}
-        solution-name: solutionone
-        solution-output-file: 'solutionone.zip'
-        working-directory: 'out'
-        
-    - name: Show PAC install directory contents
-      run: |
-        echo "PAC path: $POWERPLATFORMTOOLS_PACPATH"
-        ls -R "$POWERPLATFORMTOOLS_PACPATH"  
-        
-    - name: Search entire /tmp for pac
-      run: find /tmp -name pac -type f -perm -u+x    
+        credentials-type: 'serviceprincipal'
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        application-id: ${{ env.AZURE_CLIENT_ID }}
+        client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+        environment-url: ${{ env.DEV_ENV_URL }}
+        solution-name: ${{ github.event.inputs.solution_name }}
+        create-managed-package: 'true'            # explicitly create managed package
+        unpack-solution: 'false'                  # we will unpack manually (or with pac) below
+        output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
 
-    - name: Where is pac?
-      run: which pac || echo "pac not found"
-      
-    - name: Add Power Platform CLI to PATH
-      run: echo "/tmp/powerplatform-actions-ZVUi5H/pac" >> $GITHUB_PATH
-      
-    - name: Generate deployment settings
+
+    - name: List exported managed package
       run: |
-        pac solution create-settings \
-          --solution-zip out/solutionone.zip \
-          out/solutionone_deploymentsettings.json
+        echo "Listing managed folder contents:"
+        ls -la "${{ env.MANAGED_FOLDER }}" || true
+        echo "Path used for solution zip: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+
+
+        
+#    - name: Show PAC install directory contents
+#      run: |
+#        echo "PAC path: $POWERPLATFORMTOOLS_PACPATH"
+#        ls -R "$POWERPLATFORMTOOLS_PACPATH"  
+        
+#    - name: Search entire /tmp for pac
+#      run: find /tmp -name pac -type f -perm -u+x    
+
+#    - name: Where is pac?
+#      run: which pac || echo "pac not found"
+      
+#    - name: Add Power Platform CLI to PATH
+#      run: echo "/tmp/powerplatform-actions-ZVUi5H/pac" >> $GITHUB_PATH
+      
+#    - name: Generate deployment settings
+#      run: |
+#        pac solution create-settings \
+#          --solution-zip out/solutionone.zip \
+#          out/solutionone_deploymentsettings.json
           
-    - name: List connections in Target
-      run: |
-        pac connection list \
-          --environment ${{ secrets.PP_TEST_ENV_ID }} \
-          --json > out/connections.json
+#    - name: List connections in Target
+#      run: |
+#        pac connection list \
+#          --environment ${{ secrets.PP_TEST_ENV_ID }} \
+#          --json > out/connections.json
 
           
    # - name: import Solution
