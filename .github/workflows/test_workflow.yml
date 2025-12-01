@@ -112,7 +112,17 @@ jobs:
           head -n 40 "${{ env.UNPACKED_FOLDER }}/Customizations.xml"
         fi
 
-
+    - name: Import Solution
+      uses: microsoft/powerplatform-actions/import-solution@v1
+      with:
+        environment-url: 'https://orgd93932c9.crm.dynamics.com'
+        tenant-id: ${{ secrets.PP_TENANT_ID }}
+        app-id: ${{ secrets.PP_CLIENT_ID }}
+        client-secret: ${{ secrets.PP_CLIENT_SECRET }}
+        solution-file: './exported/managed/solutionone.managed.zip'    # <- Correct file path!
+        run-asynchronously: true
+        force-overwrite: true
+        publish-changes: true
         
 #    - name: Show PAC install directory contents
 #      run: |
