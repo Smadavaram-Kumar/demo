@@ -2,9 +2,6 @@ name: test workflow
 
 run-name: Deploying solution from dev to test environment
 
-on:
-  workflow_dispatch:
-
 
 on:
   workflow_dispatch:
