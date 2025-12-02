@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+    - name: Check out repository
+      uses: actions/checkout@v4
+      
     - name: Install Power Platform Tools
       uses: microsoft/powerplatform-actions/actions-install@v1
 
@@ -53,6 +57,6 @@ jobs:
       with:
         solution-folder: 'out/solutions/solutionone'
         solution-target-folder: 'src/solutions/solutione'
-        token: ${{ secrets.GIT_TOKEN }}
+        repo-token: ${{ secrets.GIT_TOKEN }}
         allow-empty-commit: true
 
