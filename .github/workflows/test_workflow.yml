@@ -112,18 +112,23 @@ jobs:
           head -n 40 "${{ env.UNPACKED_FOLDER }}/Customizations.xml"
         fi
 
-        #PAC AUTH THE DEV ENV
-        pac auth create --url "${{ env.DEV_ENV_URL }}" \
-             --tenant "${{ secrets.PP_TENANT_ID }}" \
-             --applicationId "${{ secrets.PP_CLIENT_ID }}" \
-             --clientSecret "${{ secrets.PP_CLIENT_SECRET }}"
+    - name: Authenticate PAC CLI to DEV Environment
+      run: |
+        echo "===[ Authenticating PAC CLI to DEV Environment ]==="
+        "$POWERPLATFORMTOOLS_PACPATH" auth create \
+          --url "${{ env.DEV_ENV_URL }}" \
+          --tenant "${{ secrets.PP_TENANT_ID }}" \
+          --applicationId "${{ secrets.PP_CLIENT_ID }}" \
+          --clientSecret "${{ secrets.PP_CLIENT_SECRET }}"
+        echo "--- Authentication Complete ---"
 
-        #LISTING ALL THE CONNECTIONS INF INTO ALLCONNS.JSON 
-        pac connection list --json > allconns.json
-
-        #PRINTING ALL THE CONNS INF IN THE LOG 
-        echo "Pretty-printed connections:"
-        jq . allconns.json        
+    - name: List All Power Platform Connections (Pretty Print)
+      run: |
+        echo "===[ Listing All Connections in Test Environment ]==="
+        "$POWERPLATFORMTOOLS_PACPATH" connection list --json > allconns.json
+        echo
+        echo "===[ Connections Output Follows ]==="
+        jq . allconns.json      
 
 #    - name: Import Solution
 #      uses: microsoft/powerplatform-actions/import-solution@v1
