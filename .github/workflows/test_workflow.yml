@@ -119,7 +119,7 @@ jobs:
           --url "${{ env.DEV_ENV_URL }}" \
           --tenant "${{ secrets.PP_TENANT_ID }}" \
           --applicationId "${{ secrets.PP_CLIENT_ID }}" \
-          --clientSecret "${{ secrets.PP_CLIENT_SECRET }}"
+          --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
           --name "ci-test-sp" \
           || ( echo "pac auth create failed" && exit 1 )
     
