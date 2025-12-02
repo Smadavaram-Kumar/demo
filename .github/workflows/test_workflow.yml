@@ -112,36 +112,59 @@ jobs:
           head -n 40 "${{ env.UNPACKED_FOLDER }}/Customizations.xml"
         fi
 
-    - name: Authenticate PAC CLI to DEV Environment
-      run: |
-        set -e
-        set -x
-        echo "===[ Authenticating PAC CLI to DEV Environment ]==="
-        "$POWERPLATFORMTOOLS_PACPATH" auth create \
-          --url "${{ env.DEV_ENV_URL }}" \
-          --tenant "${{ secrets.PP_TENANT_ID }}" \
-          --applicationId "${{ secrets.PP_CLIENT_ID }}" \
-          --clientSecret "${{ secrets.PP_CLIENT_SECRET }}"
-        echo "--- Authentication Complete ---"
-        AUTH_EXIT_CODE=$?
-        echo "--- Authentication Complete (exit code: $AUTH_EXIT_CODE) ---"
 
-    - name: List All Power Platform Connections (Pretty Print)
+    - name: Authenticate to Test (service principal)
       run: |
-        set -e
-        set -x
-        echo "===[ Listing All Connections in Dev Environment ]==="
-        "$POWERPLATFORMTOOLS_PACPATH" connection list --json > allconns.json
-        PAC_EXIT_CODE=$?
-        echo "--- PAC CLI list exit code: $PAC_EXIT_CODE ---"
-        echo
-        echo "===[ Raw Connections Output Follows ]==="
-        cat allconns.json
-        echo
-        echo "===[ Connections Output (Pretty Printed) ]==="
-        jq . allconns.json
-        JQ_EXIT_CODE=$?
-        echo "--- jq exit code: $JQ_EXIT_CODE ---"  
+        pac auth create --kind serviceprincipal \
+          --applicationId "$CLIENT_ID" \
+          --clientSecret "$CLIENT_SECRET" \
+          --tenant "$TENANT_ID" \
+          --url "$DEV_ENV_URL" \
+          --name "ci-test-sp" \
+          || ( echo "pac auth create failed" && exit 1 )
+    
+        echo "Authenticated (created profile 'ci-test-sp')"
+    
+        pac auth who
+
+    - name: List connections (JSON format)
+      run: |
+        pac connection list --environment "$DEV_ENV_URL" --json | tee connections.json || echo "pac connection list --json failed"
+    
+    - name: List connections (verbose)
+      run: |
+        pac connection list --environment "$DEV_ENV_URL" --verbose || echo "pac connection list --verbose failed"
+
+#    - name: Authenticate PAC CLI to DEV Environment
+#      run: |
+#        set -e
+#        set -x
+#        echo "===[ Authenticating PAC CLI to DEV Environment ]==="
+#        "$POWERPLATFORMTOOLS_PACPATH" auth create \
+#          --url "${{ env.DEV_ENV_URL }}" \
+#          --tenant "${{ secrets.PP_TENANT_ID }}" \
+#          --applicationId "${{ secrets.PP_CLIENT_ID }}" \
+#          --clientSecret "${{ secrets.PP_CLIENT_SECRET }}"
+#        echo "--- Authentication Complete ---"
+#        AUTH_EXIT_CODE=$?
+#        echo "--- Authentication Complete (exit code: $AUTH_EXIT_CODE) ---"
+
+#    - name: List All Power Platform Connections (Pretty Print)
+#      run: |
+#        set -e
+#        set -x
+#        echo "===[ Listing All Connections in Dev Environment ]==="
+#        "$POWERPLATFORMTOOLS_PACPATH" connection list --json > allconns.json
+#        PAC_EXIT_CODE=$?
+#        echo "--- PAC CLI list exit code: $PAC_EXIT_CODE ---"
+#        echo
+#        echo "===[ Raw Connections Output Follows ]==="
+#        cat allconns.json
+#        echo
+#        echo "===[ Connections Output (Pretty Printed) ]==="
+#        jq . allconns.json
+#        JQ_EXIT_CODE=$?
+#        echo "--- jq exit code: $JQ_EXIT_CODE ---"  
 
 #    - name: Import Solution
 #      uses: microsoft/powerplatform-actions/import-solution@v1
