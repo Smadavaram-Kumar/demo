@@ -130,7 +130,7 @@ jobs:
       run: |
         set -e
         set -x
-        echo "===[ Listing All Connections in Test Environment ]==="
+        echo "===[ Listing All Connections in Dev Environment ]==="
         "$POWERPLATFORMTOOLS_PACPATH" connection list --json > allconns.json
         PAC_EXIT_CODE=$?
         echo "--- PAC CLI list exit code: $PAC_EXIT_CODE ---"
