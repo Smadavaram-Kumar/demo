@@ -114,6 +114,8 @@ jobs:
 
     - name: Authenticate PAC CLI to DEV Environment
       run: |
+        set -e
+        set -x
         echo "===[ Authenticating PAC CLI to DEV Environment ]==="
         "$POWERPLATFORMTOOLS_PACPATH" auth create \
           --url "${{ env.DEV_ENV_URL }}" \
@@ -121,14 +123,25 @@ jobs:
           --applicationId "${{ secrets.PP_CLIENT_ID }}" \
           --clientSecret "${{ secrets.PP_CLIENT_SECRET }}"
         echo "--- Authentication Complete ---"
+        AUTH_EXIT_CODE=$?
+        echo "--- Authentication Complete (exit code: $AUTH_EXIT_CODE) ---"
 
     - name: List All Power Platform Connections (Pretty Print)
       run: |
+        set -e
+        set -x
         echo "===[ Listing All Connections in Test Environment ]==="
         "$POWERPLATFORMTOOLS_PACPATH" connection list --json > allconns.json
+        PAC_EXIT_CODE=$?
+        echo "--- PAC CLI list exit code: $PAC_EXIT_CODE ---"
         echo
-        echo "===[ Connections Output Follows ]==="
-        jq . allconns.json      
+        echo "===[ Raw Connections Output Follows ]==="
+        cat allconns.json
+        echo
+        echo "===[ Connections Output (Pretty Printed) ]==="
+        jq . allconns.json
+        JQ_EXIT_CODE=$?
+        echo "--- jq exit code: $JQ_EXIT_CODE ---"  
 
 #    - name: Import Solution
 #      uses: microsoft/powerplatform-actions/import-solution@v1
