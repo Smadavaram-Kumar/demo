@@ -127,13 +127,10 @@ jobs:
     
         "$POWERPLATFORMTOOLS_PACPATH" auth who
 
-    - name: List connections (JSON format)
+    - name: List connections (plain)
       run: |
-        "$POWERPLATFORMTOOLS_PACPATH" connection list --environment "$DEV_ENV_URL" --json | tee connections.json || echo "pac connection list --json failed"
-    
-    - name: List connections (verbose)
-      run: |
-        "$POWERPLATFORMTOOLS_PACPATH" connection list --environment "$DEV_ENV_URL" --verbose || echo "pac connection list --verbose failed"
+        "$POWERPLATFORMTOOLS_PACPATH" connection list --environment "$DEV_ENV_URL" | tee connections.txt || echo "pac connection list failed"
+        cat connections.txt
 
 #    - name: Authenticate PAC CLI to DEV Environment
 #      run: |
