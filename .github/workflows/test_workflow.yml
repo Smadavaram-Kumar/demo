@@ -115,7 +115,7 @@ jobs:
 
     - name: Authenticate to Test (service principal)
       run: |
-        pac auth create --kind serviceprincipal \
+        "$POWERPLATFORMTOOLS_PACPATH" auth create --kind serviceprincipal \
           --applicationId "$CLIENT_ID" \
           --clientSecret "$CLIENT_SECRET" \
           --tenant "$TENANT_ID" \
@@ -125,15 +125,15 @@ jobs:
     
         echo "Authenticated (created profile 'ci-test-sp')"
     
-        pac auth who
+        "$POWERPLATFORMTOOLS_PACPATH" auth who
 
     - name: List connections (JSON format)
       run: |
-        pac connection list --environment "$DEV_ENV_URL" --json | tee connections.json || echo "pac connection list --json failed"
+        "$POWERPLATFORMTOOLS_PACPATH" connection list --environment "$DEV_ENV_URL" --json | tee connections.json || echo "pac connection list --json failed"
     
     - name: List connections (verbose)
       run: |
-        pac connection list --environment "$DEV_ENV_URL" --verbose || echo "pac connection list --verbose failed"
+        "$POWERPLATFORMTOOLS_PACPATH" connection list --environment "$DEV_ENV_URL" --verbose || echo "pac connection list --verbose failed"
 
 #    - name: Authenticate PAC CLI to DEV Environment
 #      run: |
