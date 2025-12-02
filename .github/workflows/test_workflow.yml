@@ -115,7 +115,7 @@ jobs:
 
     - name: Authenticate to Test (service principal)
       run: |
-        "$POWERPLATFORMTOOLS_PACPATH" auth create --kind serviceprincipal \
+        "$POWERPLATFORMTOOLS_PACPATH" auth create \
           --url "${{ env.DEV_ENV_URL }}" \
           --tenant "${{ secrets.PP_TENANT_ID }}" \
           --applicationId "${{ secrets.PP_CLIENT_ID }}" \
