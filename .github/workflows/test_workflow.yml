@@ -120,6 +120,7 @@ jobs:
           --tenant "${{ secrets.PP_TENANT_ID }}" \
           --applicationId "${{ secrets.PP_CLIENT_ID }}" \
           --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
+          --accept-cleartext-caching \ 
           --name "ci-test-sp" \
           || ( echo "pac auth create failed" && exit 1 )
     
