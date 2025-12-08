@@ -97,7 +97,7 @@ jobs:
           --applicationId "${{ env.AZURE_CLIENT_ID }}" \
           --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
           --tenant "${{ env.AZURE_TENANT_ID }}" \
-          --environment "${{ env.TEST_ENV_URL }}"\
+          --environment "${{ env.DEV_ENV_URL }}"\
           --accept-cleartext-caching
   
         # select the auth profile (optional, ensures subsequent pac commands target TEST)
@@ -106,7 +106,7 @@ jobs:
 
 
          echo "Listing all connections in TEST environment..."
-        "$POWERPLATFORMTOOLS_PACPATH" connection list --environment "${{ env.TEST_ENV_URL }}"
+        "$POWERPLATFORMTOOLS_PACPATH" connection list --environment "${{ env.DEV_ENV_URL }}"
 
 
     - name: List all connections (as JSON) in TEST environment
