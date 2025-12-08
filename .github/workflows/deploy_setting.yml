@@ -1,1 +1,120 @@
+name: deploy setting workflow
 
+run-name: deploy_setting
+
+
+on:
+  workflow_dispatch:
+
+env:
+  # Azure AD / Service Principal (store as repo secrets)
+  AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+
+  # Environments (store as repo secrets)
+  DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'     # e.g. https://org-<id>.crm.dynamics.com
+  TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+
+  # Local folder structure on the runner (you can change these)
+  EXPORT_FOLDER: ./exported                 # where CLI writes the exported zip(s)
+  DEPLOY_FOLDER: ./deploy                   # staging folder used before import
+  SOLUTION_FOLDER: ./exported/solutions     # generic solution folder path
+  MANAGED_FOLDER: ./exported/managed        # store managed zip here
+  UNPACKED_FOLDER: ./exported/unpacked     # unpacked folder (if using pac unpack or unzip)
+
+  # Output zip filename (will use solution_name input + suffix)
+  SOLUTION_ZIP_NAME: solutionone.managed.zip
+
+
+jobs:
+  first-job:
+    runs-on: ubuntu-latest
+
+    steps:
+    
+    - name: Checkout code
+      uses: actions/checkout@v5
+      with:
+        lfs: true
+
+    - name: Ensure folders exist
+      run: |
+        echo "Creating folder structure on runner..."
+        mkdir -p "${{ env.EXPORT_FOLDER }}" "${{ env.MANAGED_FOLDER }}" "${{ env.UNPACKED_FOLDER }}" "${{ env.DEPLOY_FOLDER }}"
+        ls -la
+
+    - name: Install Power Platform CLI / Tools
+      # installs the pac wrapper and related tooling used by the export/import actions
+      uses: microsoft/powerplatform-actions/actions-install@v1
+
+
+    #- name: Create output directory
+    #  run: mkdir -p out
+      
+    # -----------------------
+    # EXPORT (Dev) -> Managed ZIP
+    # -----------------------
+    - name: Export managed solution from Dev
+      uses: microsoft/powerplatform-actions/export-solution@v1
+      with:
+        environment-url: ${{ env.DEV_ENV_URL }}
+        app-id: ${{ env.AZURE_CLIENT_ID }}
+        client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        solution-name: ${{ github.event.inputs.solution_name }}
+        solution-output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+        managed: true
+
+
+    - name: List exported managed package
+      run: |
+        echo "Listing managed folder contents:"
+        ls -la "${{ env.MANAGED_FOLDER }}" || true
+        echo "Path used for solution zip: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+
+
+    # -----------------------
+    # UNPACK the managed ZIP on the runner
+    # -----------------------
+    - name: Unpack managed solution zip (unzip)
+      id: unpack
+      run: |
+        MANAGED_ZIP="${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+        echo "Unpacking $MANAGED_ZIP to ${{ env.UNPACKED_FOLDER }}"
+        if [ ! -f "$MANAGED_ZIP" ]; then
+          echo "ERROR: Managed ZIP not found at $MANAGED_ZIP"
+          ls -la "${{ env.MANAGED_FOLDER }}" || true
+          exit 1
+        fi
+        # try a plain unzip first (most PAC exported zips are standard zips)
+        unzip -q "$MANAGED_ZIP" -d "${{ env.UNPACKED_FOLDER }}" || {
+          echo "unzip failed — attempting pac solution unpack (if available)"
+          # fallback to pac solution unpack if installed by actions-install
+          pac solution unpack --zipfile "$MANAGED_ZIP" --folder "${{ env.UNPACKED_FOLDER }}" || {
+            echo "ERROR: both unzip and pac solution unpack failed"; exit 2;
+          }
+        }
+        echo "Unpack complete. Listing unpacked folder:"
+        ls -la "${{ env.UNPACKED_FOLDER }}" || true
+
+    # Optional: inspect a couple of typical files (small debug)
+    - name: Show a few unpacked items (debug)
+      run: |
+        echo "Top-level of unpacked:"
+        ls -la "${{ env.UNPACKED_FOLDER }}" | sed -n '1,200p' || true
+        echo "If Customizations.xml present, show head:"
+        if [ -f "${{ env.UNPACKED_FOLDER }}/Customizations.xml" ]; then
+          head -n 40 "${{ env.UNPACKED_FOLDER }}/Customizations.xml"
+        fi
+
+
+    - name: Generate deployment settings file for solution
+      run: |
+        pac solution create-settings --solution-zip exported/managed/solutionone.managed.zip exported/managed/settings.json
+
+
+    - name: Display settings.json contents
+      run: cat exported/managed/settings.json
+
+    
