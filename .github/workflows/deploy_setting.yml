@@ -103,6 +103,12 @@ jobs:
         # select the auth profile (optional, ensures subsequent pac commands target TEST)
         "$POWERPLATFORMTOOLS_PACPATH" auth list
         "$POWERPLATFORMTOOLS_PACPATH" auth select --name "ci-test-spn" || true
+
+    - name: List all connections (as JSON) in TEST environment
+      run: |
+        echo "Getting all connections in TEST..."
+        "$POWERPLATFORMTOOLS_PACPATH" connection list --environment "${{ env.TEST_ENV_URL }}" --output json > exported/managed/test-connections.json
+        cat exported/managed/test-connections.json
   
     - name: Query connection IDs from target environment and patch settings.json
       shell: bash
