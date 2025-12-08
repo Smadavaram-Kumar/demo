@@ -93,12 +93,11 @@ jobs:
     - name: Authenticate to target (TEST) environment
       run: |
         echo "Authenticating pac to TEST environment..."
-        # create an auth profile for the target environment (select a name)
         "$POWERPLATFORMTOOLS_PACPATH" auth create --name "ci-test-spn" \
-          --client-id "${{ env.AZURE_CLIENT_ID }}" \
-          --client-secret "${{ env.AZURE_CLIENT_SECRET }}" \
-          --tenant-id "${{ env.AZURE_TENANT_ID }}" \
-          --environment "${{ env.TEST_ENV_URL }}" || true
+          --applicationId "${{ env.AZURE_CLIENT_ID }}" \
+          --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
+          --tenant "${{ env.AZURE_TENANT_ID }}" \
+          --environment "${{ env.TEST_ENV_URL }}"
   
         # select the auth profile (optional, ensures subsequent pac commands target TEST)
         "$POWERPLATFORMTOOLS_PACPATH" auth list
