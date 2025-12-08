@@ -104,6 +104,11 @@ jobs:
         "$POWERPLATFORMTOOLS_PACPATH" auth list
         "$POWERPLATFORMTOOLS_PACPATH" auth select --name "ci-test-spn" || true
 
+
+         echo "Listing all connections in TEST environment..."
+        "$POWERPLATFORMTOOLS_PACPATH" connection list --environment "${{ env.TEST_ENV_URL }}"
+
+
     - name: List all connections (as JSON) in TEST environment
       run: |
         echo "Getting all connections in TEST..."
