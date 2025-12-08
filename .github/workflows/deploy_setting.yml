@@ -88,4 +88,92 @@ jobs:
     - name: Display settings.json contents
       run: cat ${{ env.MANAGED_FOLDER }}/settings.json
 
+
+    # --- after your existing steps that generate settings.json ---
+    - name: Authenticate to target (TEST) environment
+      run: |
+        echo "Authenticating pac to TEST environment..."
+        # create an auth profile for the target environment (select a name)
+        "$POWERPLATFORMTOOLS_PACPATH" auth create --name "ci-test-spn" \
+          --client-id "${{ env.AZURE_CLIENT_ID }}" \
+          --client-secret "${{ env.AZURE_CLIENT_SECRET }}" \
+          --tenant-id "${{ env.AZURE_TENANT_ID }}" \
+          --environment "${{ env.TEST_ENV_URL }}" || true
+  
+        # select the auth profile (optional, ensures subsequent pac commands target TEST)
+        "$POWERPLATFORMTOOLS_PACPATH" auth list
+        "$POWERPLATFORMTOOLS_PACPATH" auth select --name "ci-test-spn" || true
+  
+    - name: Query connection IDs from target environment and patch settings.json
+      shell: bash
+      run: |
+        set -euo pipefail
+        MANAGED_FOLDER="${{ env.MANAGED_FOLDER }}"
+        SETTINGS_FILE="$MANAGED_FOLDER/settings.json"
+        SOLUTION_ZIP="$MANAGED_FOLDER/${{ env.SOLUTION_ZIP_NAME }}"
+  
+        echo "Settings before patch:"
+        cat "$SETTINGS_FILE" || true
+  
+        # Install jq (runners usually have it but this ensures availability)
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "Installing jq..."
+          sudo apt-get update && sudo apt-get install -y jq
+        fi
+  
+        # Loop through each ConnectionReferences entry in the settings.json and try to find
+        # a matching connection in the target environment. We will match by ConnectorId substring
+        # (e.g. '/providers/Microsoft.PowerApps/apis/shared_gmail' -> 'shared_gmail').
+        # This script is generic: for each reference we perfom a pac connection list and look for the connector name.
+  
+        TMP="$MANAGED_FOLDER/settings.tmp.json"
+        cp "$SETTINGS_FILE" "$TMP"
+  
+        # iterate references
+        refs_count=$(jq '.ConnectionReferences | length' "$SETTINGS_FILE")
+        echo "Found $refs_count connection reference(s) in settings.json."
+  
+        for i in $(seq 0 $((refs_count - 1))); do
+          connectorId=$(jq -r ".ConnectionReferences[$i].ConnectorId" "$SETTINGS_FILE")
+          logicalName=$(jq -r ".ConnectionReferences[$i].LogicalName" "$SETTINGS_FILE")
+          echo "Processing logicalName=$logicalName connectorId=$connectorId"
+  
+          # derive a short connector token (e.g. shared_gmail from '/providers/.../shared_gmail')
+          connector_token=$(basename "$connectorId")
+          echo "Searching for connection in target env for connector token: $connector_token"
+  
+          # Get connection list from pac (the output is table-like; we parse it)
+          # If your pac supports json output, replace below with the json flag.
+          conn_list=$("$POWERPLATFORMTOOLS_PACPATH" connection list --environment "${{ env.TEST_ENV_URL }}" 2>/dev/null || true)
+  
+          # Attempt to find a connection id by looking for lines that include the connector_token,
+          # then capture the GUID-looking token in the same output line. This grep/awk approach is robust
+          # enough for CI textual output; adjust if your pac version supports JSON output.
+          found_conn_id=$(echo "$conn_list" | grep -i "$connector_token" -A1 || true | grep -Eo '[0-9a-fA-F-]{36,}' | head -n1 || true)
+  
+          # Fallback: try pac connection show if you know the connection name pattern (not always applicable)
+          if [ -z "$found_conn_id" ]; then
+            echo "No connection id found by token. Trying pac connection show with connector token fallback..."
+            # This is a best-effort extra step. Depending on your naming conventions you may attempt
+            # "$POWERPLATFORMTOOLS_PACPATH" connection show --name "<expected-conn-name>"
+            found_conn_id=""
+          fi
+  
+          if [ -n "$found_conn_id" ]; then
+            echo "Found connection id for $logicalName -> $found_conn_id. Patching settings.json..."
+            # Update settings.tmp.json: set .ConnectionReferences[i].ConnectionId = found_conn_id
+            jq --arg id "$found_conn_id" --argjson idx "$i" \
+               '.ConnectionReferences[$idx].ConnectionId = $id' "$TMP" > "${TMP}.2" && mv "${TMP}.2" "$TMP"
+          else
+            echo "WARNING: could not find connection id for connector '$connector_token' in target environment."
+            echo "You may need to create the connection in the target environment, or update the script to match your naming."
+          fi
+        done
+  
+        # finalize patched settings.json
+        mv "$TMP" "$SETTINGS_FILE"
+        echo "Settings after patch:"
+        cat "$SETTINGS_FILE"
+
+
     
