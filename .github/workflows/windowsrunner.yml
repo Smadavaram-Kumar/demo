@@ -139,21 +139,24 @@ jobs:
         $CLIENT_SECRET = "${env:AZURE_CLIENT_SECRET}"
         $ORG_URL = "${env:DEV_ENV_URL}"
 
-        # (If you have bash on your runner, use below; if not, convert to PowerShell Invoke-WebRequest/Invoke-RestMethod)
-        bash -c "
-          TOKEN=\$(curl -s -X POST \"https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token\" \
-            -H \"Content-Type: application/x-www-form-urlencoded\" \
-            -d \"client_id=${CLIENT_ID}&scope=${ORG_URL}/.default&client_secret=${CLIENT_SECRET}&grant_type=client_credentials\" \
-            | jq -r .access_token)
-
-          curl -s -X GET \"${ORG_URL}/api/data/v9.2/connections?\$select=connectionid,name,connectorid,statuscode,ownerid&\$top=500\" \
-            -H \"Authorization: Bearer \$TOKEN\" \
-            -H \"Accept: application/json\" | jq .
-        "
-
+        $body = @{
+          client_id     = $CLIENT_ID
+          client_secret = $CLIENT_SECRET
+          scope         = "$ORG_URL/.default"
+          grant_type    = "client_credentials"
+        }
+    
+        $tokenResponse = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token" `
+          -ContentType "application/x-www-form-urlencoded" -Body $body
+    
+        $accessToken = $tokenResponse.access_token
+    
+        $response = Invoke-RestMethod -Method Get -Uri "$ORG_URL/api/data/v9.2/connections?`$select=connectionid,name,connectorid,statuscode,ownerid&`$top=500" `
+          -Headers @{Authorization = "Bearer $accessToken"; Accept = "application/json"}
+    
+        $response.value | ConvertTo-Json -Depth 4
         # --- END: Direct API headless call
       shell: pwsh
-
 
 #way2
     # Authenticate and list connections in DEV for testing
