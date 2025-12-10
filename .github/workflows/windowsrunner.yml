@@ -113,6 +113,48 @@ jobs:
 #        & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:DEV_ENV_URL}"
 #      shell: pwsh
 
+    - name: Authenticate to DEV environment and List Connections (headless)
+      run: |
+        Write-Host "Authenticating pac to DEV environment..."
+
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" auth create --name "ci-test-spn" `
+          --applicationId "${env:AZURE_CLIENT_ID}" `
+          --clientSecret "${env:AZURE_CLIENT_SECRET}" `
+          --tenant "${env:AZURE_TENANT_ID}" `
+          --environment "${env:DEV_ENV_URL}" `
+          --accept-cleartext-caching
+
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" auth list
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" auth select --name "ci-test-spn"
+
+        Write-Host "Listing all connections in DEV environment using pac CLI..."
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:DEV_ENV_URL}"
+
+        # --- BEGIN: Direct Dataverse Web API authentication with Service Principal (headless mode)
+        Write-Host "Listing connections using headless Dataverse Web API call..."
+
+        # Set variables for bash commands (PowerShell syntax)
+        $TENANT_ID = "${env:AZURE_TENANT_ID}"
+        $CLIENT_ID = "${env:AZURE_CLIENT_ID}"
+        $CLIENT_SECRET = "${env:AZURE_CLIENT_SECRET}"
+        $ORG_URL = "${env:DEV_ENV_URL}"
+
+        # (If you have bash on your runner, use below; if not, convert to PowerShell Invoke-WebRequest/Invoke-RestMethod)
+        bash -c "
+          TOKEN=\$(curl -s -X POST \"https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token\" \
+            -H \"Content-Type: application/x-www-form-urlencoded\" \
+            -d \"client_id=${CLIENT_ID}&scope=${ORG_URL}/.default&client_secret=${CLIENT_SECRET}&grant_type=client_credentials\" \
+            | jq -r .access_token)
+
+          curl -s -X GET \"${ORG_URL}/api/data/v9.2/connections?\$select=connectionid,name,connectorid,statuscode,ownerid&\$top=500\" \
+            -H \"Authorization: Bearer \$TOKEN\" \
+            -H \"Accept: application/json\" | jq .
+        "
+
+        # --- END: Direct API headless call
+      shell: pwsh
+
+
 #way2
     # Authenticate and list connections in DEV for testing
     - name: Authenticate to DEV environment
@@ -133,4 +175,6 @@ jobs:
         Write-Host "Listing all connections in TEST environment..."
         & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:DEV_ENV_URL}"
       shell: pwsh
+
+   
 
