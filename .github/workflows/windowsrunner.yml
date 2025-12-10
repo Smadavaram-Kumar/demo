@@ -82,6 +82,12 @@ jobs:
     - name: Display settings.json contents
       run: Get-Content "${env:MANAGED_FOLDER}\settings.json"
 
+#i am trying this methods, as it can resolve authorization problem.
+#user created connection, then only user can see - user can PAC CLI
+#admin can see all connections every user created using power shell tool
+#SPN need permissions to see/read the connections in the dataverse.
+#GitHub-hosted runners (and many CI/CD environments) don’t have a desktop UI, so pop-up dialogs (like the login window) can’t appear.
+#Github is headless env i.e non interactive env.
 #admin powersgell
     - name: List Connections Using Admin PowerShell (Interactive)
       shell: pwsh
