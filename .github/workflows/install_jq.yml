@@ -1,0 +1,23 @@
+name: Install and Check jq
+
+on:
+  workflow_dispatch:
+
+jobs:
+  install-and-check-jq:
+    name: Install and Check jq version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install jq for JSON processing
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Check jq version
+        run: |
+          jq --version
+
