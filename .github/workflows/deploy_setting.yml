@@ -96,8 +96,10 @@ jobs:
 
     - name: Check Power Platform CLI version supports JSON output
       run: |
-        CLI_VERSION=$("$POWERPLATFORMTOOLS_PACPATH" --version)
-        echo "Power Platform CLI version: $CLI_VERSION"
+        RAW_VERSION=$("$POWERPLATFORMTOOLS_PACPATH" --version)
+        echo "Power Platform CLI raw version: $RAW_VERSION"
+        CLI_VERSION=$(echo "$RAW_VERSION" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
+        echo "Power Platform CLI parsed version: $CLI_VERSION"
         REQUIRED_VERSION="1.10.4"
         if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$CLI_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
           echo "ERROR: Power Platform CLI version must be at least $REQUIRED_VERSION for JSON output support."
