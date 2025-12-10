@@ -82,16 +82,16 @@ jobs:
     - name: Display settings.json contents
       run: Get-Content "${env:MANAGED_FOLDER}\settings.json"
 
-    # Authenticate and list connections in TEST
-    - name: Authenticate to target (TEST) environment
+    # Authenticate and list connections in DEV for testing
+    - name: Authenticate to DEV environment
       run: |
-        Write-Host "Authenticating pac to TEST environment..."
+        Write-Host "Authenticating pac to DEV environment..."
 
         & "${env:POWERPLATFORMTOOLS_PACPATH}" auth create --name "ci-test-spn" `
           --applicationId "${env:AZURE_CLIENT_ID}" `
           --clientSecret "${env:AZURE_CLIENT_SECRET}" `
           --tenant "${env:AZURE_TENANT_ID}" `
-          --environment "${env:TEST_ENV_URL}" `
+          --environment "${env:DEV_ENV_URL}" `
           --accept-cleartext-caching
 
         # Optional: Show profiles and select
@@ -99,6 +99,6 @@ jobs:
         & "${env:POWERPLATFORMTOOLS_PACPATH}" auth select --name "ci-test-spn"
 
         Write-Host "Listing all connections in TEST environment..."
-        & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:TEST_ENV_URL}"
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:DEV_ENV_URL}"
       shell: pwsh
 
