@@ -86,7 +86,8 @@ jobs:
     - name: Authenticate to target (TEST) environment
       run: |
         Write-Host "Authenticating pac to TEST environment..."
-        pac auth create --name "ci-test-spn" `
+
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" auth create --name "ci-test-spn" `
           --applicationId "${env:AZURE_CLIENT_ID}" `
           --clientSecret "${env:AZURE_CLIENT_SECRET}" `
           --tenant "${env:AZURE_TENANT_ID}" `
@@ -94,9 +95,10 @@ jobs:
           --accept-cleartext-caching
 
         # Optional: Show profiles and select
-        pac auth list
-        pac auth select --name "ci-test-spn"
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" auth list
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" auth select --name "ci-test-spn"
 
         Write-Host "Listing all connections in TEST environment..."
-        pac connection list --environment "${env:TEST_ENV_URL}"
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:TEST_ENV_URL}"
       shell: pwsh
+
