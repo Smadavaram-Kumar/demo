@@ -115,20 +115,6 @@ jobs:
 
     - name: Authenticate to DEV environment and List Connections (headless)
       run: |
-        Write-Host "Authenticating pac to DEV environment..."
-
-        & "${env:POWERPLATFORMTOOLS_PACPATH}" auth create --name "ci-test-spn" `
-          --applicationId "${env:AZURE_CLIENT_ID}" `
-          --clientSecret "${env:AZURE_CLIENT_SECRET}" `
-          --tenant "${env:AZURE_TENANT_ID}" `
-          --environment "${env:DEV_ENV_URL}" `
-          --accept-cleartext-caching
-
-        & "${env:POWERPLATFORMTOOLS_PACPATH}" auth list
-        & "${env:POWERPLATFORMTOOLS_PACPATH}" auth select --name "ci-test-spn"
-
-        Write-Host "Listing all connections in DEV environment using pac CLI..."
-        & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:DEV_ENV_URL}"
 
         # --- BEGIN: Direct Dataverse Web API authentication with Service Principal (headless mode)
         Write-Host "Listing connections using headless Dataverse Web API call..."
@@ -156,8 +142,11 @@ jobs:
     
         $response.value | ConvertTo-Json -Depth 4
         
-        # Print connections as a table
-        $response.value | Format-Table connectionid, name, statuscode, ownerid
+
+
+        # Print as table (always shows in CI logs)
+        $response.value | Format-Table connectionid, name, statuscode, ownerid | Out-String | Write-Host
+
 
         
         # --- END: Direct API headless call
