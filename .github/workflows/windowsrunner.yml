@@ -82,6 +82,18 @@ jobs:
     - name: Display settings.json contents
       run: Get-Content "${env:MANAGED_FOLDER}\settings.json"
 
+#admin powersgell
+    - name: List Connections Using Admin PowerShell (Interactive)
+      shell: pwsh
+      run: |
+        Write-Host "Installing Power Apps admin PowerShell module and listing connections (requires user login)..."
+        Install-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope CurrentUser
+        Import-Module Microsoft.PowerApps.Administration.PowerShell
+        Add-PowerAppsAccount
+        Get-AdminPowerAppConnection -EnvironmentName "Test_for_demo" | Format-Table Id,Name,ConnectorId,Status -AutoSize
+
+
+
 #way1
     # Authenticate and list connections in DEV for testing 
     - name: Authenticate to DEV environment
