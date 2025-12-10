@@ -1,0 +1,100 @@
+name: deploy setting workflow
+
+run-name: deploy_setting
+
+on:
+  workflow_dispatch:
+    inputs:
+      solution_name:
+        description: 'Solution unique name (not display name).'
+        required: true
+
+env:
+  # Azure AD / Service Principal (store as repo secrets)
+  AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+
+  # Environments (store as repo secrets)
+  DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
+  TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+
+  # Local folder structure on the runner
+  EXPORT_FOLDER: .\exported
+  DEPLOY_FOLDER: .\deploy
+  SOLUTION_FOLDER: .\exported\solutions
+  MANAGED_FOLDER: .\exported\managed
+  UNPACKED_FOLDER: .\exported\unpacked
+
+  # Output zip filename
+  SOLUTION_ZIP_NAME: ${{ github.event.inputs.solution_name }}.managed.zip
+
+jobs:
+  first-job:
+    runs-on: windows-latest
+
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+
+    - name: Ensure folders exist
+      run: |
+        Write-Host "Creating folder structure on runner..."
+        New-Item -ItemType Directory -Force -Path "${env:EXPORT_FOLDER}" | Out-Null
+        New-Item -ItemType Directory -Force -Path "${env:MANAGED_FOLDER}" | Out-Null
+        New-Item -ItemType Directory -Force -Path "${env:UNPACKED_FOLDER}" | Out-Null
+        New-Item -ItemType Directory -Force -Path "${env:DEPLOY_FOLDER}" | Out-Null
+        Get-ChildItem -Recurse
+
+    - name: Install Power Platform CLI / Tools
+      uses: microsoft/powerplatform-actions/actions-install@v1
+
+    # -----------------------
+    # EXPORT (Dev) -> Managed ZIP
+    # -----------------------
+    - name: Export managed solution from Dev
+      uses: microsoft/powerplatform-actions/export-solution@v1
+      with:
+        environment-url: ${{ env.DEV_ENV_URL }}
+        app-id: ${{ env.AZURE_CLIENT_ID }}
+        client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        solution-name: ${{ github.event.inputs.solution_name }}
+        solution-output-file: ${{ env.MANAGED_FOLDER }}\${{ env.SOLUTION_ZIP_NAME }}
+        managed: true
+
+    - name: List exported managed package
+      run: |
+        Write-Host "Listing managed folder contents:"
+        Get-ChildItem "${env:MANAGED_FOLDER}"
+        Write-Host "Path used for solution zip: ${env:MANAGED_FOLDER}\${env:SOLUTION_ZIP_NAME}"
+
+    - name: Generate deployment settings file for solution
+      run: |
+        Write-Host "Creating deployment settings JSON from managed solution..."
+        pac solution create-settings --solution-zip "${env:MANAGED_FOLDER}\${env:SOLUTION_ZIP_NAME}" --settings-file "${env:MANAGED_FOLDER}\settings.json"
+
+    - name: Display settings.json contents
+      run: Get-Content "${env:MANAGED_FOLDER}\settings.json"
+
+    # Authenticate and list connections in TEST
+    - name: Authenticate to target (TEST) environment
+      run: |
+        Write-Host "Authenticating pac to TEST environment..."
+        pac auth create --name "ci-test-spn" `
+          --applicationId "${env:AZURE_CLIENT_ID}" `
+          --clientSecret "${env:AZURE_CLIENT_SECRET}" `
+          --tenant "${env:AZURE_TENANT_ID}" `
+          --environment "${env:TEST_ENV_URL}" `
+          --accept-cleartext-caching
+
+        # Optional: Show profiles and select
+        pac auth list
+        pac auth select --name "ci-test-spn"
+
+        Write-Host "Listing all connections in TEST environment..."
+        pac connection list --environment "${env:TEST_ENV_URL}"
+      shell: pwsh
