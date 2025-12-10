@@ -1,4 +1,4 @@
-name: deploy setting workflow
+name: deploy setting workflow using windows runner
 
 run-name: deploy_setting
 
