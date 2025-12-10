@@ -21,3 +21,20 @@ jobs:
         run: |
           jq --version
 
+      - name: Install Power Platform CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+
+      - name: Debug CLI path and contents
+        run: |
+          echo "POWERPLATFORMTOOLS_PACPATH: $POWERPLATFORMTOOLS_PACPATH"
+          ls -l $(dirname "$POWERPLATFORMTOOLS_PACPATH")
+      
+      - name: Check Power Platform CLI presence and show version
+        run: |
+          if [ ! -x "$POWERPLATFORMTOOLS_PACPATH" ]; then
+            echo "ERROR: Power Platform CLI not found or not executable at $POWERPLATFORMTOOLS_PACPATH"
+            exit 1
+          fi
+          RAW_VERSION=$("$POWERPLATFORMTOOLS_PACPATH" --version)
+          echo "Power Platform CLI raw version: $RAW_VERSION"
