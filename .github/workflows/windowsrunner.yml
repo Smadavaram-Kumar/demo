@@ -75,7 +75,9 @@ jobs:
     - name: Generate deployment settings file for solution
       run: |
         Write-Host "Creating deployment settings JSON from managed solution..."
-        pac solution create-settings --solution-zip "${env:MANAGED_FOLDER}\${env:SOLUTION_ZIP_NAME}" --settings-file "${env:MANAGED_FOLDER}\settings.json"
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" solution create-settings --solution-zip "${env:MANAGED_FOLDER}\${env:SOLUTION_ZIP_NAME}" --settings-file "${env:MANAGED_FOLDER}\settings.json"
+      shell: pwsh
+
 
     - name: Display settings.json contents
       run: Get-Content "${env:MANAGED_FOLDER}\settings.json"
