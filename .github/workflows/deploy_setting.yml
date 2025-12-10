@@ -89,6 +89,44 @@ jobs:
       run: cat ${{ env.MANAGED_FOLDER }}/settings.json
 
 
+    - name: Install jq for JSON processing
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+
+    - name: Check Power Platform CLI version supports JSON output
+      run: |
+        CLI_VERSION=$("$POWERPLATFORMTOOLS_PACPATH" --version)
+        echo "Power Platform CLI version: $CLI_VERSION"
+        REQUIRED_VERSION="1.10.4"
+        if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$CLI_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+          echo "ERROR: Power Platform CLI version must be at least $REQUIRED_VERSION for JSON output support."
+          exit 1
+        fi
+
+    - name: Authenticate pac to TEST environment
+      run: |
+        "$POWERPLATFORMTOOLS_PACPATH" auth create --name "ci-test-spn" \
+          --applicationId "${{ env.AZURE_CLIENT_ID }}" \
+          --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
+          --tenant "${{ env.AZURE_TENANT_ID }}" \
+          --environment "${{ env.TEST_ENV_URL }}" \
+          --accept-cleartext-caching
+        "$POWERPLATFORMTOOLS_PACPATH" auth select --name "ci-test-spn" || true
+
+    - name: Retrieve connections as JSON from TEST environment
+      run: |
+        CONNECTIONS_JSON=$("$POWERPLATFORMTOOLS_PACPATH" connection list \
+          --environment "${{ env.TEST_ENV_URL }}" \
+          --output json)
+        echo "$CONNECTIONS_JSON" > connections.json
+
+    - name: Extract and display only connectionId values
+      run: |
+        cat connections.json | jq -r '.[].connectionId'
+
+
+
     # --- after your existing steps that generate settings.json ---
     - name: Authenticate to target (TEST) environment
       run: |
