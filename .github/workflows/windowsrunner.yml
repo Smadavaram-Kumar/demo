@@ -150,8 +150,8 @@ jobs:
           -ContentType "application/x-www-form-urlencoded" -Body $body
     
         $accessToken = $tokenResponse.access_token
-    
-        $response = Invoke-RestMethod -Method Get -Uri "$ORG_URL/api/data/v9.2/connections?`$select=connectionid,name,connectorid,statuscode,ownerid&`$top=500" `
+        
+        $response = Invoke-RestMethod -Method Get -Uri "$ORG_URL/api/data/v9.2/connections?`$select=connectionid,name,description,statuscode,ownerid&`$top=500" `
           -Headers @{Authorization = "Bearer $accessToken"; Accept = "application/json"}
     
         $response.value | ConvertTo-Json -Depth 4
