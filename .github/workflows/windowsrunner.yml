@@ -155,6 +155,11 @@ jobs:
           -Headers @{Authorization = "Bearer $accessToken"; Accept = "application/json"}
     
         $response.value | ConvertTo-Json -Depth 4
+        
+        # Print connections as a table
+        $response.value | Format-Table connectionid, name, statuscode, ownerid
+
+        
         # --- END: Direct API headless call
       shell: pwsh
 
