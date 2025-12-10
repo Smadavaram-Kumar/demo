@@ -82,7 +82,8 @@ jobs:
     - name: Display settings.json contents
       run: Get-Content "${env:MANAGED_FOLDER}\settings.json"
 
-    # Authenticate and list connections in DEV for testing
+#way1
+    # Authenticate and list connections in DEV for testing 
     - name: Authenticate to DEV environment
       run: |
         Write-Host "Authenticating pac to DEV environment..."
@@ -94,6 +95,11 @@ jobs:
         & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:DEV_ENV_URL}"
       shell: pwsh
 
+#way2
+    # Authenticate and list connections in DEV for testing
+    - name: Authenticate to DEV environment
+      run: |
+        Write-Host "Authenticating pac to DEV environment..."
         
         & "${env:POWERPLATFORMTOOLS_PACPATH}" auth create --name "ci-test-spn" `
           --applicationId "${env:AZURE_CLIENT_ID}" `
@@ -103,8 +109,6 @@ jobs:
           --accept-cleartext-caching
 
 
-
-        # Optional: Show profiles and select
         & "${env:POWERPLATFORMTOOLS_PACPATH}" auth list
         & "${env:POWERPLATFORMTOOLS_PACPATH}" auth select --name "ci-test-spn"
 
