@@ -186,7 +186,9 @@ jobs:
   
         for i in $(seq 0 $((refs_count - 1))); do
           connectorId=$(jq -r ".ConnectionReferences[$i].ConnectorId" "$SETTINGS_FILE")
+          echo "$connectorId"
           logicalName=$(jq -r ".ConnectionReferences[$i].LogicalName" "$SETTINGS_FILE")
+          echo "$logicalName"
           echo "Processing logicalName=$logicalName connectorId=$connectorId"
   
           # derive a short connector token (e.g. shared_gmail from '/providers/.../shared_gmail')
