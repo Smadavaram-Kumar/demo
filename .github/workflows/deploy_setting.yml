@@ -186,9 +186,8 @@ jobs:
   
         for i in $(seq 0 $((refs_count - 1))); do
           connectorId=$(jq -r ".ConnectionReferences[$i].ConnectorId" "$SETTINGS_FILE")
-          echo "$connectorId"
           logicalName=$(jq -r ".ConnectionReferences[$i].LogicalName" "$SETTINGS_FILE")
-          echo "$logicalName"
+
           echo "Processing logicalName=$logicalName connectorId=$connectorId"
   
           # derive a short connector token (e.g. shared_gmail from '/providers/.../shared_gmail')
@@ -204,14 +203,28 @@ jobs:
           echo "$conn_list"
           echo "==== End PAC connection list output ===="
           
-          found_conn_id=$(echo "$conn_list" \
-            | grep "$connectorId" \
-            | awk '{print $1}' \
-            | grep -Eo '^[0-9a-fA-F-]{36}$' \
-            | head -n1 || true)
-
+          # find the line containing connectorId (case-insensitive)
+          match_line=$(echo "$conn_list" | grep -i "$connectorId" || true)
+          echo "Match line: '$match_line'"
+          
+          # get first whitespace-separated token (the id column)
+          first_token=$(echo "$match_line" | awk '{print $1}' || true)
+          echo "First token: '$first_token'"
+          
+          # normalize token: remove non-hex/dash characters
+          normalized=$(echo "$first_token" | tr -d '[:space:]' | tr -d '\r' | sed 's/[^0-9a-fA-F-]//g')
+          
+          # Accept either 32 hex chars (no dashes) or 36 chars with dashes
+          if echo "$normalized" | grep -Eq '^[0-9a-fA-F]{32}$'; then
+          found_conn_id="$normalized"
+          elif echo "$normalized" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'; then
+          found_conn_id="$normalized"
+          else
+          found_conn_id=""
+          fi
           
           echo "found_conn_id: '$found_conn_id'"
+
 
   
           # Fallback: try pac connection show if you know the connection name pattern (not always applicable)
