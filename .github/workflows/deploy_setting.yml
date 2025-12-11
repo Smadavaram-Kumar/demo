@@ -203,9 +203,11 @@ jobs:
           echo "==== End PAC connection list output ===="
           
           found_conn_id=$(echo "$conn_list" \
-            | awk -v id="$CONNECTOR_ID" '$3 == id {print $1}' \
-            | grep -Eo '[0-9a-fA-F-]{36}' \
+            | grep "$connectorId" \
+            | awk '{print $1}' \
+            | grep -Eo '^[0-9a-fA-F-]{36}$' \
             | head -n1 || true)
+
           
           echo "found_conn_id: '$found_conn_id'"
 
