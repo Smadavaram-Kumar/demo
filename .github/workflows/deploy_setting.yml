@@ -195,17 +195,20 @@ jobs:
   
           # Get connection list from pac (the output is table-like; we parse it)
           # If your pac supports json output, replace below with the json flag.
-          conn_list=$("$POWERPLATFORMTOOLS_PACPATH" connection list --environment "${{ env.TEST_ENV_URL }}" 2>/dev/null || true)
-  
-          # Attempt to find a connection id by looking for lines that include the connector_token,
-          # then capture the GUID-looking token in the same output line. This grep/awk approach is robust
-          # enough for CI textual output; adjust if your pac version supports JSON output.
-           found_conn_id=$(echo "$conn_list" \
-            | awk -v pat="$connectorId" '$3 ~ pat {print $1}' \
+          #conn_list=$("$POWERPLATFORMTOOLS_PACPATH" connection list --environment "${{ env.TEST_ENV_URL }}" 2>/dev/null || true)
+
+          conn_list=$("$POWERPLATFORMTOOLS_PACPATH" connection list --environment "${TEST_ENV_URL}" 2>/dev/null || true)
+          echo "==== PAC connection list output for debug ===="
+          echo "$conn_list"
+          echo "==== End PAC connection list output ===="
+          
+          found_conn_id=$(echo "$conn_list" \
+            | awk -v id="$CONNECTOR_ID" '$3 == id {print $1}' \
             | grep -Eo '[0-9a-fA-F-]{36}' \
             | head -n1 || true)
-
+          
           echo "found_conn_id: '$found_conn_id'"
+
   
           # Fallback: try pac connection show if you know the connection name pattern (not always applicable)
           if [ -z "$found_conn_id" ]; then
