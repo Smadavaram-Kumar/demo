@@ -200,8 +200,12 @@ jobs:
           # Attempt to find a connection id by looking for lines that include the connector_token,
           # then capture the GUID-looking token in the same output line. This grep/awk approach is robust
           # enough for CI textual output; adjust if your pac version supports JSON output.
-          found_conn_id=$(echo "$conn_list" | grep -i "$connector_token" | awk '{print $1}' | grep -Eo '[0-9a-fA-F-]{36}' | head -n1 || true)
+           found_conn_id=$(echo "$conn_list" \
+            | awk -v pat="$connectorId" '$0 ~ pat {print $1}' \
+            | grep -Eo '[0-9a-fA-F-]{36}' \
+            | head -n1 || true)
 
+          echo "found_conn_id: '$found_conn_id'"
   
           # Fallback: try pac connection show if you know the connection name pattern (not always applicable)
           if [ -z "$found_conn_id" ]; then
