@@ -113,7 +113,7 @@ jobs:
 #        & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:DEV_ENV_URL}"
 #      shell: pwsh
 
-    - name: Authenticate to DEV environment and List Connections (headless)
+    - name: Authenticate to TEST environment and List Connections (headless)
       run: |
 
         # --- BEGIN: Direct Dataverse Web API authentication with Service Principal (headless mode)
@@ -127,7 +127,7 @@ jobs:
         $TENANT_ID = "${env:AZURE_TENANT_ID}"
         $CLIENT_ID = "${env:AZURE_CLIENT_ID}"
         $CLIENT_SECRET = "${env:AZURE_CLIENT_SECRET}"
-        $ORG_URL = "${env:DEV_ENV_URL}"
+        $ORG_URL = "${env:TEST_ENV_URL}"
         
         # Prepare token body
         $body = @{
@@ -180,16 +180,16 @@ jobs:
       shell: pwsh
 
 #way2
-    # Authenticate and list connections in DEV for testing
-    - name: Authenticate to DEV environment
+    # Authenticate and list connections in TEST for testing
+    - name: Authenticate to TEST environment
       run: |
-        Write-Host "Authenticating pac to DEV environment..."
+        Write-Host "Authenticating pac to TEST environment..."
         
         & "${env:POWERPLATFORMTOOLS_PACPATH}" auth create --name "ci-test-spn" `
           --applicationId "${env:AZURE_CLIENT_ID}" `
           --clientSecret "${env:AZURE_CLIENT_SECRET}" `
           --tenant "${env:AZURE_TENANT_ID}" `
-          --environment "${env:DEV_ENV_URL}" `
+          --environment "${env:TEST_ENV_URL}" `
           --accept-cleartext-caching
 
 
@@ -197,7 +197,7 @@ jobs:
         & "${env:POWERPLATFORMTOOLS_PACPATH}" auth select --name "ci-test-spn"
 
         Write-Host "Listing all connections in TEST environment..."
-        & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:DEV_ENV_URL}"
+        & "${env:POWERPLATFORMTOOLS_PACPATH}" connection list --environment "${env:TEST_ENV_URL}"
       shell: pwsh
 
    
