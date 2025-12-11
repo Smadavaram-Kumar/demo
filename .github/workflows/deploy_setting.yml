@@ -201,7 +201,7 @@ jobs:
           # then capture the GUID-looking token in the same output line. This grep/awk approach is robust
           # enough for CI textual output; adjust if your pac version supports JSON output.
            found_conn_id=$(echo "$conn_list" \
-            | awk -v pat="$connectorId" '$0 ~ pat {print $1}' \
+            | awk -v pat="$connectorId" '$3 ~ pat {print $1}' \
             | grep -Eo '[0-9a-fA-F-]{36}' \
             | head -n1 || true)
 
