@@ -202,28 +202,51 @@ jobs:
           echo "==== PAC connection list output for debug ===="
           echo "$conn_list"
           echo "==== End PAC connection list output ===="
-          
+
+
           # find the line containing connectorId (case-insensitive)
-          match_line=$(echo "$conn_list" | grep -i "$connectorId" || true)
+          match_line=$(echo "$conn_list" | grep -i "$connectorId" | head -n1 || true)
           echo "Match line: '$match_line'"
           
-          # get first whitespace-separated token (the id column)
-          first_token=$(echo "$match_line" | awk '{print $1}' || true)
+          # get first whitespace-separated token (the id column - may be just a GUID or a prefix+GUID string)
+          first_token=$(echo "$match_line" | awk '{print $1}' | tr -d '[:space:]' | tr -d '\r' || true)
           echo "First token: '$first_token'"
           
-          # normalize token: remove non-hex/dash characters
-          normalized=$(echo "$first_token" | tr -d '[:space:]' | tr -d '\r' | sed 's/[^0-9a-fA-F-]//g')
+          # Default: use first_token as the found connection id (covers both legacy and modern cases)
+          found_conn_id="$first_token"
           
-          # Accept either 32 hex chars (no dashes) or 36 chars with dashes
-          if echo "$normalized" | grep -Eq '^[0-9a-fA-F]{32}$'; then
-          found_conn_id="$normalized"
-          elif echo "$normalized" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'; then
-          found_conn_id="$normalized"
-          else
-          found_conn_id=""
-          fi
+          # If you ever must supply JUST the GUID in older environments, you can use this block.
+          # Extract a GUID if present within the first_token (uncomment and use if needed)
+          # guid_candidate=$(echo "$first_token" | grep -Eo '[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' | head -n1 || true)
+          # if [ -n "$guid_candidate" ]; then
+          #   found_conn_id="$guid_candidate"
+          # fi
           
           echo "found_conn_id: '$found_conn_id'"
+
+          
+          
+          # find the line containing connectorId (case-insensitive)
+          #match_line=$(echo "$conn_list" | grep -i "$connectorId" || true)
+          #echo "Match line: '$match_line'"
+          
+          # get first whitespace-separated token (the id column)
+          #first_token=$(echo "$match_line" | awk '{print $1}' || true)
+          #echo "First token: '$first_token'"
+          
+          # normalize token: remove non-hex/dash characters
+          #normalized=$(echo "$first_token" | tr -d '[:space:]' | tr -d '\r' | sed 's/[^0-9a-fA-F-]//g')
+          
+          # Accept either 32 hex chars (no dashes) or 36 chars with dashes
+          #if echo "$normalized" | grep -Eq '^[0-9a-fA-F]{32}$'; then
+          #found_conn_id="$normalized"
+          #elif echo "$normalized" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'; then
+          #found_conn_id="$normalized"
+          #else
+          #found_conn_id=""
+          #fi
+          
+          #echo "found_conn_id: '$found_conn_id'"
 
 
   
