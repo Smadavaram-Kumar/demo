@@ -274,5 +274,37 @@ jobs:
         echo "Settings after patch:"
         cat "$SETTINGS_FILE"
 
+# way2 of importing
+#    - name: Import managed solution into TEST using patched settings
+#      run: |
+#        echo "Importing solution to TEST using patched settings.json..."
+#        "$POWERPLATFORMTOOLS_PACPATH" solution import \
+#          --path "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+#          --settings-file "${{ env.MANAGED_FOLDER }}/settings.json" \
+#          --environment "${{ env.TEST_ENV_URL }}"
+
+
+
+    - name: Import managed solution to TEST (with settings)
+      uses: microsoft/powerplatform-actions/import-solution@v1
+      with:
+        environment-url: ${{ env.TEST_ENV_URL }}
+        
+        # SPN authentication
+        app-id: ${{ env.AZURE_CLIENT_ID }}
+        client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        
+        # Solution package
+        solution-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+        
+        # Deployment settings file
+        #deployment-settings-file: ${{ env.MANAGED_FOLDER }}/settings.json
+        
+        # Recommended flags
+        #async: true
+        #max-async-wait-time: 60
+        #force-overwrite: true
+        #publish-changes: true
 
     
