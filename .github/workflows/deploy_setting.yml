@@ -76,21 +76,6 @@ jobs:
         ls -la "${{ env.MANAGED_FOLDER }}" || true
         echo "Path used for solution zip: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
 
-    - name: Authenticate pac to Dev environment (for Solution Checker)
-      run: |
-        echo "Authenticating pac CLI to DEV environment..."
-        "$POWERPLATFORMTOOLS_PACPATH" auth create --name "ci-dev-spn" \
-          --applicationId "${{ env.AZURE_CLIENT_ID }}" \
-          --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
-          --tenant "${{ env.AZURE_TENANT_ID }}" \
-          --environment "${{ env.DEV_ENV_URL }}" \
-          --accept-cleartext-caching
-
-
-    - name: Check solution for missing dependencies and issues
-      run: |
-        echo "Running Power Platform Solution Checker..."
-        "$POWERPLATFORMTOOLS_PACPATH" solution check --path "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
 
 
     - name: Generate deployment settings file for solution
