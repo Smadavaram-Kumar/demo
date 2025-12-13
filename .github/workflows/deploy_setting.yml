@@ -299,7 +299,7 @@ jobs:
         solution-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
         
         # Deployment settings file
-        #deployment-settings-file: ${{ env.MANAGED_FOLDER }}/settings.json
+        deployment-settings-file: ${{ env.MANAGED_FOLDER }}/settings.json
         
         # Recommended flags
         #async: true
