@@ -79,7 +79,7 @@ jobs:
     - name: Check solution for missing dependencies and issues
       run: |
         echo "Running Power Platform Solution Checker..."
-        "$POWERPLATFORMTOOLS_PACPATH" solution check --name "${{ github.event.inputs.solution_name }}"
+        "$POWERPLATFORMTOOLS_PACPATH" solution check --path "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
 
 
     - name: Generate deployment settings file for solution
