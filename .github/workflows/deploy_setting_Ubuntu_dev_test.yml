@@ -317,6 +317,22 @@ jobs:
 
 
 
+
+    - name: Import solution using pac CLI
+      run: |
+        "$POWERPLATFORMTOOLS_PACPATH" auth create \
+          --applicationId "${{ env.AZURE_CLIENT_ID }}" \
+          --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
+          --tenant "${{ env.AZURE_TENANT_ID }}" \
+          --environment "${{ env.TEST_ENV_URL }}"
+    
+        "$POWERPLATFORMTOOLS_PACPATH" solution import \
+          --path "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+          --settings-file "${{ env.MANAGED_FOLDER }}/settings.json" \
+          --force-overwrite
+
+
+
     - name: Import managed solution to TEST (with settings)
       uses: microsoft/powerplatform-actions/import-solution@v1
       with:
