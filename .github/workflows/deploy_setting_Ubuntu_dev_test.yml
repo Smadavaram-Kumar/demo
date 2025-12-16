@@ -76,6 +76,37 @@ jobs:
         ls -la "${{ env.MANAGED_FOLDER }}" || true
         echo "Path used for solution zip: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
 
+    - name: Validate flows do NOT contain hardcoded connections (Place-2 check)
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        ZIP="${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+        UNPACK="${{ env.UNPACKED_FOLDER }}"
+
+        echo "Unpacking solution to inspect flow JSON..."
+        rm -rf "$UNPACK"
+        mkdir -p "$UNPACK"
+        unzip -q "$ZIP" -d "$UNPACK"
+
+        echo "Scanning workflows for hidden connectionIds..."
+        BAD_FILES=$(grep -R "\"connectionId\"" "$UNPACK/Workflows" || true)
+
+        if [ -n "$BAD_FILES" ]; then
+          echo "ERROR: Hardcoded flow-level connections found!"
+          echo "These flows contain Place-2 connections:"
+          echo "$BAD_FILES"
+          echo ""
+          echo "Fix required in DEV:"
+          echo " - Open the flow"
+          echo " - Rebind to Connection Reference"
+          echo " - Save"
+          echo " - Turn OFF → ON"
+          echo " - Re-export solution"
+          exit 1
+        else
+          echo "PASS: No hidden flow-level connections found."
+        fi
 
 
     - name: Generate deployment settings file for solution
@@ -286,21 +317,21 @@ jobs:
 
 
 
-    - name: Import managed solution to TEST (with settings)
-      uses: microsoft/powerplatform-actions/import-solution@v1
-      with:
-        environment-url: ${{ env.TEST_ENV_URL }}
+    #- name: Import managed solution to TEST (with settings)
+     # uses: microsoft/powerplatform-actions/import-solution@v1
+      #with:
+       # environment-url: ${{ env.TEST_ENV_URL }}
         
         # SPN authentication
-        app-id: ${{ env.AZURE_CLIENT_ID }}
-        client-secret: ${{ env.AZURE_CLIENT_SECRET }}
-        tenant-id: ${{ env.AZURE_TENANT_ID }}
+       # app-id: ${{ env.AZURE_CLIENT_ID }}
+       # client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+       # tenant-id: ${{ env.AZURE_TENANT_ID }}
         
         # Solution package
-        solution-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+       # solution-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
         
         # Deployment settings file
-        deployment-settings-file: ${{ env.MANAGED_FOLDER }}/settings.json
+       # deployment-settings-file: ${{ env.MANAGED_FOLDER }}/settings.json
         
         # Recommended flags
         #async: true
