@@ -291,7 +291,8 @@ jobs:
           --applicationId "${{ env.AZURE_CLIENT_ID }}" \
           --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
           --tenant "${{ env.AZURE_TENANT_ID }}" \
-          --environment "${{ env.TEST_ENV_URL }}"
+          --environment "${{ env.TEST_ENV_URL }}"\
+          --accept-cleartext-caching
     
         "$POWERPLATFORMTOOLS_PACPATH" solution import \
           --path "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
