@@ -1,4 +1,4 @@
-name: deploy setting workflow- dev to test
+name: Installjqdeploy setting workflow- dev to test
 run-name: deploy_setting
 
 on:
