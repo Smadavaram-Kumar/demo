@@ -1,40 +1,160 @@
-name: Install and Check jq
+name: deploy setting workflow- dev to test
+run-name: deploy_setting
 
 on:
   workflow_dispatch:
+    inputs:
+      solution_name:
+        description: 'Solution unique name (not display name).'
+        required: true
+
+env:
+  AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+
+  DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
+  TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+
+  EXPORT_FOLDER: ./exported
+  MANAGED_FOLDER: ./exported/managed
+  UNPACKED_FOLDER: ./exported/unpacked
+
+  SOLUTION_ZIP_NAME: ${{ github.event.inputs.solution_name }}.zip
 
 jobs:
-  install-and-check-jq:
-    name: Install and Check jq version
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v5
 
-      - name: Install jq for JSON processing
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
+    - name: Install Power Platform CLI
+      uses: microsoft/powerplatform-actions/actions-install@v1
 
-      - name: Check jq version
-        run: |
-          jq --version
+    - name: Ensure folders
+      run: |
+        mkdir -p $EXPORT_FOLDER $MANAGED_FOLDER $UNPACKED_FOLDER
 
-      - name: Install Power Platform CLI
-        uses: microsoft/powerplatform-actions/actions-install@v1
+    # -------------------------
+    # EXPORT SOLUTION
+    # -------------------------
+    - name: Export solution from DEV
+      uses: microsoft/powerplatform-actions/export-solution@v1
+      with:
+        environment-url: ${{ env.DEV_ENV_URL }}
+        app-id: ${{ env.AZURE_CLIENT_ID }}
+        client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        solution-name: ${{ github.event.inputs.solution_name }}
+        solution-output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+        managed: false
 
+    # -------------------------
+    # UNPACK SOLUTION
+    # -------------------------
+    - name: Unpack solution
+      run: |
+        "$POWERPLATFORMTOOLS_PACPATH" solution unpack \
+          --zipfile "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+          --folder "${{ env.UNPACKED_FOLDER }}" \
+          --allowDelete
 
-      - name: Debug CLI path and contents
-        run: |
-          echo "POWERPLATFORMTOOLS_PACPATH: $POWERPLATFORMTOOLS_PACPATH"
-          ls -l $(dirname "$POWERPLATFORMTOOLS_PACPATH")
-      
-      - name: Check Power Platform CLI presence and show version
-        run: |
-          if [ ! -x "$POWERPLATFORMTOOLS_PACPATH" ]; then
-            echo "ERROR: Power Platform CLI not found or not executable at $POWERPLATFORMTOOLS_PACPATH"
-            exit 1
-          fi
-          RAW_VERSION=$("$POWERPLATFORMTOOLS_PACPATH" --version)
-          echo "Power Platform CLI raw version: $RAW_VERSION"
+    # -------------------------
+    # CREATE SETTINGS.JSON
+    # -------------------------
+    - name: Create deployment settings
+      run: |
+        "$POWERPLATFORMTOOLS_PACPATH" solution create-settings \
+          --solution-zip "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+          --settings-file "${{ env.MANAGED_FOLDER }}/settings.json"
+
+    - name: Print ALL connection references
+      run: |
+        echo "All connection references in solution:"
+        jq -r '.ConnectionReferences[].LogicalName' \
+          "${{ env.MANAGED_FOLDER }}/settings.json"
+
+    # -------------------------
+    # DETECT FLOW CONNECTION REFS
+    # -------------------------
+    - name: Detect FLOW connection references
+      run: |
+        WORKFLOW_DIR="${{ env.UNPACKED_FOLDER }}/Workflows"
+        OUTPUT="flow-connection-refs.txt"
+
+        if [ -d "$WORKFLOW_DIR" ]; then
+          grep -R "\"referenceName\"" "$WORKFLOW_DIR" \
+            | sed -E 's/.*"referenceName":\s*"([^"]+)".*/\1/' \
+            | sort -u > "$OUTPUT"
+        else
+          touch "$OUTPUT"
+        fi
+
+        echo "FLOW connection references:"
+        cat "$OUTPUT"
+
+    # -------------------------
+    # AUTH TEST ENV
+    # -------------------------
+    - name: Authenticate to TEST
+      run: |
+        "$POWERPLATFORMTOOLS_PACPATH" auth create \
+          --name test \
+          --applicationId "${{ env.AZURE_CLIENT_ID }}" \
+          --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
+          --tenant "${{ env.AZURE_TENANT_ID }}" \
+          --environment "${{ env.TEST_ENV_URL }}" \
+          --accept-cleartext-caching
+
+        "$POWERPLATFORMTOOLS_PACPATH" auth select --name test
+
+    # -------------------------
+    # PATCH ONLY FLOW REFS
+    # -------------------------
+    - name: Patch ONLY flow connection refs
+      run: |
+        SETTINGS="${{ env.MANAGED_FOLDER }}/settings.json"
+        TMP="${SETTINGS}.tmp"
+
+        cp "$SETTINGS" "$TMP"
+
+        while read REF; do
+          echo "Patching FLOW ref: $REF"
+
+          IDX=$(jq -r --arg r "$REF" '
+            .ConnectionReferences | to_entries[]
+            | select(.value.LogicalName==$r) | .key
+          ' "$SETTINGS")
+
+          [ -z "$IDX" ] && continue
+
+          CONN_ID=$("$POWERPLATFORMTOOLS_PACPATH" connection list \
+            --environment "${{ env.TEST_ENV_URL }}" \
+            | grep "$REF" | awk '{print $1}' | head -n1)
+
+          [ -z "$CONN_ID" ] && continue
+
+          jq --arg id "$CONN_ID" --argjson i "$IDX" \
+            '.ConnectionReferences[$i].ConnectionId=$id' \
+            "$TMP" > "$TMP.2" && mv "$TMP.2" "$TMP"
+
+        done < flow-connection-refs.txt
+
+        mv "$TMP" "$SETTINGS"
+        cat "$SETTINGS"
+
+    # -------------------------
+    # IMPORT SOLUTION
+    # -------------------------
+    - name: Import solution to TEST
+      uses: microsoft/powerplatform-actions/import-solution@v1
+      with:
+        environment-url: ${{ env.TEST_ENV_URL }}
+        app-id: ${{ env.AZURE_CLIENT_ID }}
+        client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        solution-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+        deployment-settings-file: ${{ env.MANAGED_FOLDER }}/settings.json
+
