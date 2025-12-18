@@ -1,4 +1,4 @@
-name: Deploy Setting Workflow - Dev to Test
+name: jqDeploy Setting Workflow - Dev to Test
 
 run-name: deploy_setting
 
@@ -81,7 +81,7 @@ jobs:
             "${{ env.MANAGED_FOLDER }}/settings.json"
 
       # -------------------------
-      # EXTRACT FLOW CONNECTION REFS (referenceName logical names)
+      # EXTRACT FLOW CONNECTION REFS (LogicalName extraction - FIXED)
       # -------------------------
       - name: Extract FLOW connection references
         run: |
@@ -90,18 +90,18 @@ jobs:
           OUTPUT="flow-connection-refs.txt"
           if [ -d "$WORKFLOW_DIR" ]; then
             jq -r '
-              .properties.connectionReferences
-              | to_entries[]
-              | .value.referenceName
+              .properties.connectionReferences // {} |
+              to_entries[] |
+              .value.connection.connectionReferenceLogicalName // empty
             ' "$WORKFLOW_DIR"/*.json | sort -u > "$OUTPUT"
           else
             touch "$OUTPUT"
           fi
-          echo "FLOW connection references (as LogicalNames):"
+          echo "FLOW connection references (LogicalNames):"
           cat "$OUTPUT"
 
       # -------------------------
-      # DIAGNOSE: SHOW ALL RELEVANT FILES AND CONNECTION INFORMATION
+      # DIAGNOSTICS (OPTIONAL - for troubleshooting)
       # -------------------------
       - name: Diagnostic - Explore unpacked flows and settings
         run: |
@@ -130,15 +130,15 @@ jobs:
             echo ""
           done
 
-          echo "========== [4] Extract all referenceName fields from connectionReferences =========="
+          echo "========== [4] Extract all connectionReferenceLogicalName fields =========="
           for f in "$WORKFLOW_DIR"/*.json; do
             [ -f "$f" ] || continue
             echo "------ $f ------"
             jq -r '
-              .properties.connectionReferences // empty
-              | to_entries[]
-              | "Key: " + .key + "  referenceName: " + (.value.referenceName // "N/A")
-            ' "$f" || echo "(Not a valid JSON or no referenceName fields found)"
+              .properties.connectionReferences // {} |
+              to_entries[] |
+              "Key: " + .key + "  logicalName: " + (.value.connection.connectionReferenceLogicalName // "N/A")
+            ' "$f" || echo "(Not a valid JSON or no logicalName fields found)"
             echo ""
           done
 
@@ -179,6 +179,7 @@ jobs:
           TMP="${SETTINGS}.tmp"
           cp "$SETTINGS" "$TMP"
           while read REF; do
+            [ -z "$REF" ] && continue
             echo "Patching FLOW ref: $REF"
             IDX=$(jq -r --arg r "$REF" '
               .ConnectionReferences | to_entries[]
