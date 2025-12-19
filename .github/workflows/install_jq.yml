@@ -255,6 +255,13 @@ jobs:
           # 2. Extract all Power Platform connections (export so we can search efficiently)
           CONN_LIST_OUT="test-connections.txt"
           $PAC connection list --environment "$TEST_ENV_URL" > "$CONN_LIST_OUT"
+          echo " ----------------------------------"
+          echo " Connections pulled from target env"
+          echo " ----------------------------------"
+          cat "$CONN_LIST_OUT"
+          echo " ----------------------------------"
+          echo " ----------------------------------"
+          
           
           # 3. For each flow-used logicalName, find its entry in settings.json and patch ONLY those
           TMP="$SETTINGS_FILE.tmp"
