@@ -61,24 +61,59 @@ jobs:
             --zipfile "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
             --folder "${{ env.UNPACKED_FOLDER }}" \
             --allowDelete
+          echo "====== [FULL DIRECTORY TREE OF UNPACKED SOLUTION] ======"
+          find "${{ env.UNPACKED_FOLDER }}" -print
+          echo ""
+
+
+
+      - name: Show all files and content under Workflows
+        run: |
+          WORKFLOW_DIR="${{ env.UNPACKED_FOLDER }}/Workflows"
+          echo "====== [FILES IN Workflows] ======"
+          ls -lh "$WORKFLOW_DIR" || echo "(No Workflows folder)"
+
+          echo "====== [ALL CONTENT OF .json FILES IN Workflows] ======"
+          for f in "$WORKFLOW_DIR"/*.json; do
+            [ -f "$f" ] && (echo -e "\n--- FILE: $f ---\n"; cat "$f"; echo "")
+          done
+
+          echo "====== [ALL CONTENT OF .xml FILES IN Workflows] ======"
+          for f in "$WORKFLOW_DIR"/*.xml; do
+            [ -f "$f" ] && (echo -e "\n--- FILE: $f ---\n"; cat "$f"; echo "")
+          done
+
+      - name: Show all other folders/files in unpacked
+        run: |
+          echo "====== [OTHER FOLDERS AND FILES IN UNPACKED] ======"
+          for d in "${{ env.UNPACKED_FOLDER }}"/*; do
+            [ -d "$d" ] && [ "$d" != "${{ env.UNPACKED_FOLDER }}/Workflows" ] && (echo "[DIR:] $d"; ls -lh "$d"; for f in "$d"/*; do [ -f "$f" ] && (echo "- $f"; cat "$f"; echo ""); done)
+          done
 
       # -------------------------
       # CREATE SETTINGS.JSON
       # -------------------------
       - name: Create deployment settings
         run: |
+          echo "Creating deployment settings JSON from managed solution..."
           "$POWERPLATFORMTOOLS_PACPATH" solution create-settings \
             --solution-zip "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
             --settings-file "${{ env.MANAGED_FOLDER }}/settings.json"
 
-      # -------------------------
-      # PRINT ALL CONNECTION REFERENCES IN SETTINGS
-      # -------------------------
-      - name: Print ALL connection references
+
+      - name: Show ALL files and contents in MANAGED_FOLDER
         run: |
-          echo "All connection references in solution:"
-          jq -r '.ConnectionReferences[].LogicalName' \
-            "${{ env.MANAGED_FOLDER }}/settings.json"
+          echo "ALL files and contents in MANAGED_FOLDER..."
+          for f in "${{ env.MANAGED_FOLDER }}"/*; do
+            [ -f "$f" ] && (echo "--- $f ---"; cat "$f"; echo "====")
+          done
+
+
+      - name: Display settings.json contents     
+        run: 
+         echo "Printing the whole setting file..."
+         cat ${{ env.MANAGED_FOLDER }}/settings.json
+
 
       # -------------------------
       # EXTRACT FLOW CONNECTION REFS (LogicalName extraction - FIXED)
