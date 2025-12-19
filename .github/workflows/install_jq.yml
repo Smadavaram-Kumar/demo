@@ -83,33 +83,6 @@ jobs:
             [ -f "$f" ] && (echo -e "\n--- FILE: $f ---\n"; cat "$f"; echo "")
           done
 
-      - name: Show all other folders/files in unpacked
-        run: |
-          echo "====== [OTHER FOLDERS AND FILES IN UNPACKED] ======"
-          
-          UNPACKED_DIR="./exported/unpacked"
-          
-          # Loop over all items in the unpacked directory
-          for d in "$UNPACKED_DIR"/*; do
-            # Only process directories and skip 'Workflows'
-            if [ -d "$d" ] && [ "$d" != "$UNPACKED_DIR/Workflows" ]; then
-              echo "[DIR:] $d"
-              ls -lh "$d"
-              # Collect all files in this directory
-              shopt -s nullglob  # Prevents literal pattern if no matches
-              files=("$d"/*)
-              for f in "${files[@]}"; do
-                if [ -f "$f" ]; then
-                  echo "- $f"
-                  cat "$f"
-                  echo ""
-                fi
-              done
-              shopt -u nullglob
-            fi
-          done
-          
-          exit 0  # Always exit successfully for CI friendliness
 
       # -------------------------
       # CREATE SETTINGS.JSON
