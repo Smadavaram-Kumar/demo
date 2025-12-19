@@ -125,15 +125,35 @@ jobs:
       - name: Show ALL files and contents in MANAGED_FOLDER
         run: |
           echo "ALL files and contents in MANAGED_FOLDER..."
-          for f in "${{ env.MANAGED_FOLDER }}"/*; do
-            [ -f "$f" ] && (echo "--- $f ---"; cat "$f"; echo "====")
-          done
+          
+          MANAGED_DIR="./exported/managed"
+          
+          # Enable nullglob to prevent pattern expansion errors if directory is empty
+          shopt -s nullglob
+          
+          files=("$MANAGED_DIR"/*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "(No files found in $MANAGED_DIR)"
+          else
+            for f in "${files[@]}"; do
+              if [ -f "$f" ]; then
+                echo "--- $f ---"
+                cat "$f"
+                echo "===="
+              fi
+            done
+          fi
+          
+          shopt -u nullglob
+          
+          exit 0
+
 
 
       - name: Display settings.json contents     
         run: 
          echo "Printing the whole setting file..."
-         cat ${{ env.MANAGED_FOLDER }}/settings.json
+         cat ./exported/managed/settings.json
 
 
       # -------------------------
