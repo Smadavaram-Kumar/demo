@@ -84,6 +84,35 @@ jobs:
           done
 
 
+      - name: Show all other folders/files in unpacked
+        run: |
+          echo "====== [OTHER FOLDERS AND FILES IN UNPACKED] ======"
+          
+          UNPACKED_DIR="./exported/unpacked"
+          
+          # Loop over all items in the unpacked directory
+          for d in "$UNPACKED_DIR"/*; do
+            # Only process directories and skip 'Workflows'
+            if [ -d "$d" ] && [ "$d" != "$UNPACKED_DIR/Workflows" ]; then
+              echo "[DIR:] $d"
+              ls -lh "$d"
+              # Collect all files in this directory
+              shopt -s nullglob  # Prevents literal pattern if no matches
+              files=("$d"/*)
+              for f in "${files[@]}"; do
+                if [ -f "$f" ]; then
+                  echo "- $f"
+                  cat "$f"
+                  echo ""
+                fi
+              done
+              shopt -u nullglob
+            fi
+          done
+          
+          exit 0  # Always exit successfully for CI friendliness
+
+
       # -------------------------
       # CREATE SETTINGS.JSON
       # -------------------------
@@ -93,33 +122,6 @@ jobs:
           "$POWERPLATFORMTOOLS_PACPATH" solution create-settings \
             --solution-zip "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
             --settings-file "${{ env.MANAGED_FOLDER }}/settings.json"
-
-
-      - name: Show ALL files and contents in MANAGED_FOLDER
-        run: |
-          echo "ALL files and contents in MANAGED_FOLDER..."
-          
-          MANAGED_DIR="./exported/managed"
-          
-          # Enable nullglob to prevent pattern expansion errors if directory is empty
-          shopt -s nullglob
-          
-          files=("$MANAGED_DIR"/*)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "(No files found in $MANAGED_DIR)"
-          else
-            for f in "${files[@]}"; do
-              if [ -f "$f" ]; then
-                echo "--- $f ---"
-                cat "$f"
-                echo "===="
-              fi
-            done
-          fi
-          
-          shopt -u nullglob
-          
-          exit 0
 
 
       - name: Display settings.json contents
