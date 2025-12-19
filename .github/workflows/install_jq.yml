@@ -149,11 +149,14 @@ jobs:
           exit 0
 
 
-
-      - name: Display settings.json contents     
-        run: 
-         echo "Printing the whole setting file..."
-         cat ./exported/managed/settings.json
+      - name: Display settings.json contents
+        run: |
+          echo "Printing the whole setting file..."
+          if [ -f ./exported/managed/settings.json ]; then
+            cat ./exported/managed/settings.json
+          else
+            echo "(settings.json not found)"
+          fi
 
 
       # -------------------------
