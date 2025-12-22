@@ -210,7 +210,7 @@ jobs:
           
           WORKFLOW_DIR="./exported/unpacked/Workflows"
           SETTINGS_FILE="./exported/managed/settings.json"
-          TEST_ENV_URL="https://orgd93932c9.crm.dynamics.com"
+          TEST_ENV_URL="${{ env.TEST_ENV_URL }}"
           PAC="$POWERPLATFORMTOOLS_PACPATH"
           
           # 1. Extract only the logical names from actual flows
