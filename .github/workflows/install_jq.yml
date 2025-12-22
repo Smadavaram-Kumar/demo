@@ -14,9 +14,20 @@ env:
   AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
   AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
 
-  DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
-  TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+  # -------------------------
+  # DEV AND TEST URL'S
+  # -------------------------
 
+  #DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
+  #TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+
+  # -------------------------
+  # BASE AND TARGET URL'S
+  # -------------------------
+
+  DEV_ENV_URL: 'https://org0d2311bd.crm.dynamics.com'     
+  TEST_ENV_URL: 'https://org5bef66f8.crm.dynamics.com'
+  
   EXPORT_FOLDER: ./exported
   MANAGED_FOLDER: ./exported/managed
   UNMANAGED_FOLDER: ./exported/unmanaged
