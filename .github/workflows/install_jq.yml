@@ -50,7 +50,7 @@ jobs:
           tenant-id: ${{ env.AZURE_TENANT_ID }}
           solution-name: ${{ github.event.inputs.solution_name }}
           solution-output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
-          managed: false
+          managed: true
 
       # -------------------------
       # UNPACK SOLUTION
