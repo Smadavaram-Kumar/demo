@@ -19,6 +19,7 @@ env:
 
   EXPORT_FOLDER: ./exported
   MANAGED_FOLDER: ./exported/managed
+  UNMANAGED_FOLDER: ./exported/unmanaged
   UNPACKED_FOLDER: ./exported/unpacked
 
   SOLUTION_ZIP_NAME: ${{ github.event.inputs.solution_name }}.zip
@@ -38,8 +39,24 @@ jobs:
         run: |
           mkdir -p $EXPORT_FOLDER $MANAGED_FOLDER $UNPACKED_FOLDER
 
+
+
       # -------------------------
-      # EXPORT SOLUTION
+      # EXPORT UNMANAGED SOLUTION
+      # -------------------------
+      - name: Export solution from DEV
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ env.DEV_ENV_URL }}
+          app-id: ${{ env.AZURE_CLIENT_ID }}
+          client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          solution-name: ${{ github.event.inputs.solution_name }}
+          solution-output-file: ${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+          managed: false
+
+      # -------------------------
+      # EXPORT MANAGED SOLUTION
       # -------------------------
       - name: Export solution from DEV
         uses: microsoft/powerplatform-actions/export-solution@v1
@@ -58,7 +75,7 @@ jobs:
       - name: Unpack solution
         run: |
           "$POWERPLATFORMTOOLS_PACPATH" solution unpack \
-            --zipfile "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+            --zipfile "${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
             --folder "${{ env.UNPACKED_FOLDER }}" \
             --allowDelete
           echo "====== [FULL DIRECTORY TREE OF UNPACKED SOLUTION] ======"
