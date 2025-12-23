@@ -1,0 +1,48 @@
+name: Import Solution
+
+on:
+  workflow_call:
+    inputs:
+      solution_name: { required: true, type: string }
+      managed_folder: { required: true, type: string }
+      test_env_url: { required: true, type: string }
+      azure_tenant_id: { required: true, type: string }
+      azure_client_id: { required: true, type: string }
+      azure_client_secret: { required: true, type: string }
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    env:
+      TEST_ENV_URL: ${{ inputs.test_env_url }}
+      MANAGED_FOLDER: ${{ inputs.managed_folder }}
+      SOLUTION_ZIP_NAME: ${{ inputs.solution_name }}.zip
+      AZURE_TENANT_ID: ${{ inputs.azure_tenant_id }}
+      AZURE_CLIENT_ID: ${{ inputs.azure_client_id }}
+      AZURE_CLIENT_SECRET: ${{ inputs.azure_client_secret }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download patched for import
+        uses: actions/download-artifact@v4
+        with:
+          name: patched-for-import
+          path: ${{ env.MANAGED_FOLDER }}
+
+      - name: Install Power Platform CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Import solution using pac CLI
+        run: |
+          "$POWERPLATFORMTOOLS_PACPATH" auth create \
+            --applicationId "${AZURE_CLIENT_ID}" \
+            --clientSecret "${AZURE_CLIENT_SECRET}" \
+            --tenant "${AZURE_TENANT_ID}" \
+            --environment "${TEST_ENV_URL}"
+
+          "$POWERPLATFORMTOOLS_PACPATH" solution import \
+            --path "${MANAGED_FOLDER}/${SOLUTION_ZIP_NAME}" \
+            --settings-file "${MANAGED_FOLDER}/settings.json" \
+            --force-overwrite
