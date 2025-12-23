@@ -7,16 +7,24 @@ on:
         description: 'Solution unique name (not display name).'
         required: true
 
+env:  # <<=== Define all non-secret envs here!
+  DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
+  TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+  EXPORT_FOLDER: ./exported
+  MANAGED_FOLDER: ./exported/managed
+  UNMANAGED_FOLDER: ./exported/unmanaged
+  UNPACKED_FOLDER: ./exported/unpacked
+
 jobs:
   export:
     uses: ./.github/workflows/w1-export.yml
     with:
       solution_name: ${{ github.event.inputs.solution_name }}
-      dev_env_url: ${{ secrets.DEV_ENV_URL }}
-      export_folder: ./exported
-      managed_folder: ./exported/managed
-      unmanaged_folder: ./exported/unmanaged
-      unpacked_folder: ./exported/unpacked
+      dev_env_url: ${{ env.DEV_ENV_URL }}
+      export_folder: ${{ env.EXPORT_FOLDER }}
+      managed_folder: ${{ env.MANAGED_FOLDER }}
+      unmanaged_folder: ${{ env.UNMANAGED_FOLDER }}
+      unpacked_folder: ${{ env.UNPACKED_FOLDER }}
       azure_tenant_id: ${{ secrets.PP_TENANT_ID }}
       azure_client_id: ${{ secrets.PP_CLIENT_ID }}
       azure_client_secret: ${{ secrets.PP_CLIENT_SECRET }}
@@ -27,9 +35,9 @@ jobs:
     uses: ./.github/workflows/w2-patch.yml
     with:
       solution_name: ${{ github.event.inputs.solution_name }}
-      managed_folder: ./exported/managed
-      unpacked_folder: ./exported/unpacked
-      test_env_url: ${{ secrets.TEST_ENV_URL }}
+      managed_folder: ${{ env.MANAGED_FOLDER }}
+      unpacked_folder: ${{ env.UNPACKED_FOLDER }}
+      test_env_url: ${{ env.TEST_ENV_URL }}
       azure_tenant_id: ${{ secrets.PP_TENANT_ID }}
       azure_client_id: ${{ secrets.PP_CLIENT_ID }}
       azure_client_secret: ${{ secrets.PP_CLIENT_SECRET }}
@@ -40,9 +48,10 @@ jobs:
     uses: ./.github/workflows/w3-import.yml
     with:
       solution_name: ${{ github.event.inputs.solution_name }}
-      managed_folder: ./exported/managed
-      test_env_url: ${{ secrets.TEST_ENV_URL }}
+      managed_folder: ${{ env.MANAGED_FOLDER }}
+      test_env_url: ${{ env.TEST_ENV_URL }}
       azure_tenant_id: ${{ secrets.PP_TENANT_ID }}
       azure_client_id: ${{ secrets.PP_CLIENT_ID }}
       azure_client_secret: ${{ secrets.PP_CLIENT_SECRET }}
     secrets: inherit
+
