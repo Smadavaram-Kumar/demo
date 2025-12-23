@@ -1,0 +1,48 @@
+name: jqDeploy Orchestrator
+
+on:
+  workflow_dispatch:
+    inputs:
+      solution_name:
+        description: 'Solution unique name (not display name).'
+        required: true
+
+jobs:
+  export:
+    uses: ./.github/workflows/w1-export.yml
+    with:
+      solution_name: ${{ github.event.inputs.solution_name }}
+      dev_env_url: ${{ secrets.DEV_ENV_URL }}
+      export_folder: ./exported
+      managed_folder: ./exported/managed
+      unmanaged_folder: ./exported/unmanaged
+      unpacked_folder: ./exported/unpacked
+      azure_tenant_id: ${{ secrets.PP_TENANT_ID }}
+      azure_client_id: ${{ secrets.PP_CLIENT_ID }}
+      azure_client_secret: ${{ secrets.PP_CLIENT_SECRET }}
+    secrets: inherit
+
+  patch:
+    needs: export
+    uses: ./.github/workflows/w2-patch.yml
+    with:
+      solution_name: ${{ github.event.inputs.solution_name }}
+      managed_folder: ./exported/managed
+      unpacked_folder: ./exported/unpacked
+      test_env_url: ${{ secrets.TEST_ENV_URL }}
+      azure_tenant_id: ${{ secrets.PP_TENANT_ID }}
+      azure_client_id: ${{ secrets.PP_CLIENT_ID }}
+      azure_client_secret: ${{ secrets.PP_CLIENT_SECRET }}
+    secrets: inherit
+
+  import:
+    needs: [export, patch]
+    uses: ./.github/workflows/w3-import.yml
+    with:
+      solution_name: ${{ github.event.inputs.solution_name }}
+      managed_folder: ./exported/managed
+      test_env_url: ${{ secrets.TEST_ENV_URL }}
+      azure_tenant_id: ${{ secrets.PP_TENANT_ID }}
+      azure_client_id: ${{ secrets.PP_CLIENT_ID }}
+      azure_client_secret: ${{ secrets.PP_CLIENT_SECRET }}
+    secrets: inherit
