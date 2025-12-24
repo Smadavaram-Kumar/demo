@@ -10,6 +10,11 @@ on:
         required: true
 
 env:
+
+  # -------------------------
+  # SPN INFORMATION
+  # -------------------------
+  
   AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
   AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
   AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
@@ -28,6 +33,10 @@ env:
   #DEV_ENV_URL: 'https://org0d2311bd.crm.dynamics.com'     
   #TEST_ENV_URL: 'https://org5bef66f8.crm.dynamics.com'
   
+  # -------------------------
+  # FOLDERS THAT WILL GET CREATED DURING WORKFLOW RUN
+  # -------------------------
+  
   EXPORT_FOLDER: ./exported
   MANAGED_FOLDER: ./exported/managed
   UNMANAGED_FOLDER: ./exported/unmanaged
@@ -40,20 +49,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+
+      # -------------------------
+      # SOURCE CONTROL CHECKOUT
+      # -------------------------
+      - name: Checkout  # PULLS THE REPO CODE INTO RUNNER  
         uses: actions/checkout@v5
 
-      - name: Install Power Platform CLI
+      # -------------------------
+      # INSTALL POWER PLATFORM CLI
+      # -------------------------
+      - name: Install Power Platform CLI # -INSTALLS THE CLI INTO RUNNER IN A TEMP FOLDER
         uses: microsoft/powerplatform-actions/actions-install@v1
 
-      - name: Ensure folders
+
+      # -------------------------
+      # ENSURE NEEDED FOLDERS EXIST
+      # -------------------------
+      - name: Ensure folders  # - CREATES FOLDERS
         run: |
           mkdir -p $EXPORT_FOLDER $MANAGED_FOLDER $UNPACKED_FOLDER
 
 
 
       # -------------------------
-      # EXPORT UNMANAGED SOLUTION
+      # EXPORT UNMANAGED SOLUTION (FOR UNPACKING/INSPECTION)
       # -------------------------
       - name: Export solution from DEV
         uses: microsoft/powerplatform-actions/export-solution@v1
@@ -67,7 +87,7 @@ jobs:
           managed: false
 
       # -------------------------
-      # EXPORT MANAGED SOLUTION
+      # EXPORT MANAGED SOLUTION (FOR IMPORT TO TEST ENV)
       # -------------------------
       - name: Export solution from DEV
         uses: microsoft/powerplatform-actions/export-solution@v1
@@ -80,8 +100,9 @@ jobs:
           solution-output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
           managed: true
 
+      
       # -------------------------
-      # UNPACK SOLUTION
+      # UNPACK UNMANAGED SOLUTION FOR FLOW/WORKFLOW REVIEW
       # -------------------------
       - name: Unpack solution
         run: |
@@ -94,7 +115,9 @@ jobs:
           echo ""
 
 
-
+      # -------------------------
+      # DEBUG: PRINT ALL .JSON AND .XML IN WORKFLOWS FOLDER
+      # -------------------------
       - name: Show all files and content under Workflows
         run: |
           WORKFLOW_DIR="${{ env.UNPACKED_FOLDER }}/Workflows"
@@ -112,6 +135,10 @@ jobs:
           done
 
 
+
+      # -------------------------
+      # DEBUG: PRINT ALL OTHER FOLDERS IN UNPACKED DIR
+      # -------------------------
       - name: Show all other folders/files in unpacked
         run: |
           echo "====== [OTHER FOLDERS AND FILES IN UNPACKED] ======"
@@ -152,6 +179,9 @@ jobs:
             --settings-file "${{ env.MANAGED_FOLDER }}/settings.json"
 
 
+      # -------------------------
+      # CREATE DEPLOYMENT SETTINGS FILE (BASE)
+      # -------------------------
       - name: Display settings.json contents
         run: |
           echo "Printing the whole setting file..."
