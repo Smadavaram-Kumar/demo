@@ -17,7 +17,7 @@ env:  # <<=== Define all non-secret envs here!
 
 jobs:
   export:
-    uses: demo/.github/workflows/w1-export.yml 
+    uses: demo/.github/workflows/w1-export.yml@main
     with:
       solution_name: ${{ github.event.inputs.solution_name }}
       dev_env_url: ${{ env.DEV_ENV_URL }}
@@ -32,7 +32,7 @@ jobs:
 
   patch:
     needs: export
-    uses: demo/.github/workflows/w2-patch.yml
+    uses: demo/.github/workflows/w2-patch.yml@main
     with:
       solution_name: ${{ github.event.inputs.solution_name }}
       managed_folder: ${{ env.MANAGED_FOLDER }}
@@ -45,7 +45,7 @@ jobs:
 
   import:
     needs: [export, patch]
-    uses: demo/.github/workflows/w3-import.yml
+    uses: demo/.github/workflows/w3-import.yml@main
     with:
       solution_name: ${{ github.event.inputs.solution_name }}
       managed_folder: ${{ env.MANAGED_FOLDER }}
