@@ -1,0 +1,131 @@
+name: Deploy - only export and import
+
+run-name: deploy_setting
+
+on:
+  workflow_dispatch:
+    inputs:
+      solution_name:
+        description: 'Solution unique name (not display name).'
+        required: true
+
+env:
+
+  # -------------------------
+  # SPN INFORMATION
+  # -------------------------
+  
+  AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+
+  # -------------------------
+  # DEV AND TEST URL'S
+  # -------------------------
+
+  DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
+  TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+
+  # -------------------------
+  # BASE AND TARGET URL'S
+  # -------------------------
+
+  #DEV_ENV_URL: 'https://org0d2311bd.crm.dynamics.com'     
+  #TEST_ENV_URL: 'https://org5bef66f8.crm.dynamics.com'
+  
+  # -------------------------
+  # FOLDERS THAT WILL GET CREATED DURING WORKFLOW RUN
+  # -------------------------
+  
+  EXPORT_FOLDER: ./exported
+  MANAGED_FOLDER: ./exported/managed
+  UNMANAGED_FOLDER: ./exported/unmanaged
+  UNPACKED_FOLDER: ./exported/unpacked
+
+  SOLUTION_ZIP_NAME: ${{ github.event.inputs.solution_name }}.zip
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # -------------------------
+      # SOURCE CONTROL CHECKOUT
+      # -------------------------
+      - name: Checkout  # PULLS THE REPO CODE INTO RUNNER  
+        uses: actions/checkout@v5
+
+      # -------------------------
+      # INSTALL POWER PLATFORM CLI
+      # -------------------------
+      - name: Install Power Platform CLI # -INSTALLS THE CLI INTO RUNNER IN A TEMP FOLDER
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+
+      # -------------------------
+      # ENSURE NEEDED FOLDERS EXIST
+      # -------------------------
+      - name: Ensure folders  # - CREATES FOLDERS
+        run: |
+          mkdir -p $EXPORT_FOLDER $MANAGED_FOLDER $UNPACKED_FOLDER
+
+
+
+      # -------------------------
+      # EXPORT UNMANAGED SOLUTION (FOR UNPACKING/INSPECTION)
+      # -------------------------
+      - name: Export solution from DEV
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ env.DEV_ENV_URL }}
+          app-id: ${{ env.AZURE_CLIENT_ID }}
+          client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          solution-name: ${{ github.event.inputs.solution_name }}
+          solution-output-file: ${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+          managed: false
+
+      # -------------------------
+      # EXPORT MANAGED SOLUTION (FOR IMPORT TO TEST ENV)
+      # -------------------------
+      - name: Export solution from DEV
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ env.DEV_ENV_URL }}
+          app-id: ${{ env.AZURE_CLIENT_ID }}
+          client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          solution-name: ${{ github.event.inputs.solution_name }}
+          solution-output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+          managed: true
+
+      
+      # -------------------------
+      # UNPACK UNMANAGED SOLUTION FOR FLOW/WORKFLOW REVIEW
+      # -------------------------
+      - name: Unpack solution
+        run: |
+          "$POWERPLATFORMTOOLS_PACPATH" solution unpack \
+            --zipfile "${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+            --folder "${{ env.UNPACKED_FOLDER }}" \
+            --allowDelete
+          echo "====== [FULL DIRECTORY TREE OF UNPACKED SOLUTION] ======"
+          find "${{ env.UNPACKED_FOLDER }}" -print
+          echo ""
+
+
+
+      # -------------------------
+      # IMPORT SOLUTION
+      # -------------------------
+      - name: Import solution using pac CLI
+        run: |
+          "$POWERPLATFORMTOOLS_PACPATH" auth create \
+            --applicationId "${{ env.AZURE_CLIENT_ID }}" \
+            --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
+            --tenant "${{ env.AZURE_TENANT_ID }}" \
+            --environment "${{ env.TEST_ENV_URL }}"
+      
+          "$POWERPLATFORMTOOLS_PACPATH" solution import \
+            --path "${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
