@@ -324,6 +324,6 @@ jobs:
             --environment "${{ env.TEST_ENV_URL }}"
       
           "$POWERPLATFORMTOOLS_PACPATH" solution import \
-            --path "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+            --path "${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
             --settings-file "${{ env.MANAGED_FOLDER }}/settings.json" \
             --force-overwrite
