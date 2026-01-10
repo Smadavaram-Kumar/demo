@@ -331,8 +331,15 @@ jobs:
             --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
             --tenant "${{ env.AZURE_TENANT_ID }}" \
             --environment "${{ env.TEST_ENV_URL }}"
+
+          if [[ "${{ github.event.inputs.solution_type }}" == "managed" ]]; then
+            SOL_PATH="${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+          else
+            SOL_PATH="${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+          fi
       
           "$POWERPLATFORMTOOLS_PACPATH" solution import \
-            --path "${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+             --path "$SOL_PATH" \
+            #--path "${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
             --settings-file "${{ env.MANAGED_FOLDER }}/settings.json" \
             --force-overwrite
