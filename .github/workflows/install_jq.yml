@@ -8,6 +8,15 @@ on:
       solution_name:
         description: 'Solution unique name (not display name).'
         required: true
+      solution_type:
+        description: 'Type of solution to import: managed or unmanaged'
+        required: true
+        default: 'managed'
+        type: choice
+        options:
+          - managed
+          - unmanaged
+          
       #dev_env_url:               
        # description: 'Dev environment URL'
        # required: true
