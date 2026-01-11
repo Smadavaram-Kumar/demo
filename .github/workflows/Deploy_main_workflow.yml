@@ -139,7 +139,12 @@ jobs:
         run: |
           WORKFLOW_DIR="${{ env.UNPACKED_FOLDER }}/Workflows"
           echo "====== [FILES IN Workflows] ======"
-          ls -lh "$WORKFLOW_DIR" || echo "(No Workflows folder)"
+          
+          if [ -d "$WORKFLOW_DIR" ]; then
+            ls -lh "$WORKFLOW_DIR"
+          else
+            echo "(No Workflows folder)"
+          fi
 
           echo "====== [ALL CONTENT OF .json FILES IN Workflows] ======"
           for f in "$WORKFLOW_DIR"/*.json; do
