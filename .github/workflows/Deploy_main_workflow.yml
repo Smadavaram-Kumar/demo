@@ -142,19 +142,21 @@ jobs:
           
           if [ -d "$WORKFLOW_DIR" ]; then
             ls -lh "$WORKFLOW_DIR"
+            
+            echo "====== [ALL CONTENT OF .json FILES IN Workflows] ======"
+            for f in "$WORKFLOW_DIR"/*.json; do
+              [ -f "$f" ] && (echo -e "\n--- FILE: $f ---\n"; cat "$f"; echo "")
+            done
+  
+            echo "====== [ALL CONTENT OF .xml FILES IN Workflows] ======"
+            for f in "$WORKFLOW_DIR"/*.xml; do
+              [ -f "$f" ] && (echo -e "\n--- FILE: $f ---\n"; cat "$f"; echo "")
+            done
+            
           else
             echo "(No Workflows folder)"
           fi
 
-          echo "====== [ALL CONTENT OF .json FILES IN Workflows] ======"
-          for f in "$WORKFLOW_DIR"/*.json; do
-            [ -f "$f" ] && (echo -e "\n--- FILE: $f ---\n"; cat "$f"; echo "")
-          done
-
-          echo "====== [ALL CONTENT OF .xml FILES IN Workflows] ======"
-          for f in "$WORKFLOW_DIR"/*.xml; do
-            [ -f "$f" ] && (echo -e "\n--- FILE: $f ---\n"; cat "$f"; echo "")
-          done
 
 
 
