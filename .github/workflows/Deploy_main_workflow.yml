@@ -271,12 +271,12 @@ jobs:
           FLOW_CONN_REFS="flow-connection-refs.txt"
           if [ -d "$WORKFLOW_DIR" ]; then
             jq -r '
-              .properties.connectionReferences // {} |
-              to_entries[] |
-              .value.connection.connectionReferenceLogicalName // empty
-            ' "$WORKFLOW_DIR"/*.json | sort -u > "$FLOW_CONN_REFS"
+              .properties.connectionReferences // {} |                                 # Tries to extract the connectionReferences object from the JSON. If it doesn’t exist, uses an empty object instead.
+              to_entries[] |                                                           #Converts the JSON object to an array of key-value objects, then iterates over each key-value pair.
+              .value.connection.connectionReferenceLogicalName // empty                #For each entry, it tries to get the logical name of the connection reference; if absent, returns nothing.
+            ' "$WORKFLOW_DIR"/*.json | sort -u > "$FLOW_CONN_REFS"                     #Sorts and deduplicates the extracted logical names.
           else
-            touch "$FLOW_CONN_REFS"
+            touch "$FLOW_CONN_REFS"                                                    #if the workflow directory does not exist, touch "$FLOW_CONN_REFS": Creates an empty flow-connection-refs.txt file.
           fi
           
           echo "Flow logical names to patch:"
@@ -297,26 +297,26 @@ jobs:
           TMP="$SETTINGS_FILE.tmp"
           cp "$SETTINGS_FILE" "$TMP"
           
-          while read FLOW_LOGICAL; do
-            [ -z "$FLOW_LOGICAL" ] && continue
+          while read FLOW_LOGICAL; do                                                                             # Begins a loop: reads each line from the input file (later, $FLOW_CONN_REFS) and assigns it to the variable FLOW_LOGICAL.
+            [ -z "$FLOW_LOGICAL" ] && continue                                                                    # If FLOW_LOGICAL is empty (-z represents zero length), moves to the next iteration (continue). 
             echo "Processing flow logical: $FLOW_LOGICAL"
             # Find this logical in settings.json and extract connector id
-            IFS=' ' # reset IFS
-            IDX=$(jq -r --arg r "$FLOW_LOGICAL" '
+            IFS=' '                                                                                               # reset IFS
+            IDX=$(jq -r --arg r "$FLOW_LOGICAL" '                                                                 # Uses jq to find the index (key) of the connection reference in settings.json where the LogicalName matches FLOW_LOGICAL.If found, IDX is set to the key (index) for that entry.
               .ConnectionReferences | to_entries[]
               | select(.value.LogicalName==$r) | .key' "$SETTINGS_FILE")
-            [ -z "$IDX" ] && { echo "  Not found in settings.json, skipping."; continue; }
+            [ -z "$IDX" ] && { echo "  Not found in settings.json, skipping."; continue; }                        #If IDX is empty (the logical name doesn't exist in the settings file), notify and skip this logical name.
           
-            CONNECTOR_ID=$(jq -r --argjson i "$IDX" '.ConnectionReferences[$i].ConnectorId' "$SETTINGS_FILE")
-            CONNECTOR_TOKEN=$(basename "$CONNECTOR_ID")
+            CONNECTOR_ID=$(jq -r --argjson i "$IDX" '.ConnectionReferences[$i].ConnectorId' "$SETTINGS_FILE")     # Extracts the ConnectorId for this logical name from the settings file.
+            CONNECTOR_TOKEN=$(basename "$CONNECTOR_ID")                                                           #Gets the last "token" (basename) of ConnectorId (e.g., strips path, keeps only the actual connector name).
             echo "  Searching for test connection for connector: $CONNECTOR_TOKEN"
           
-            MATCH_LINE=$(grep -i "$CONNECTOR_ID" "$CONN_LIST_OUT" | head -n1 || true)
-            FOUND_CONN_ID=$(echo "$MATCH_LINE" | awk '{print $1}' | tr -d '[:space:]' | tr -d '\r' || true)
+            MATCH_LINE=$(grep -i "$CONNECTOR_ID" "$CONN_LIST_OUT" | head -n1 || true)                             #Searches (grep -i) for the connector ID in the output file $CONN_LIST_OUT (a file with available connection instances, likely with IDs in the first column).
+            FOUND_CONN_ID=$(echo "$MATCH_LINE" | awk '{print $1}' | tr -d '[:space:]' | tr -d '\r' || true)       #Uses awk to extract the first column (presumably the connection ID), removes whitespace and carriage returns
           
             if [ -n "$FOUND_CONN_ID" ]; then
               echo "  Found connection id: $FOUND_CONN_ID"
-              jq --arg id "$FOUND_CONN_ID" --argjson i "$IDX" \
+              jq --arg id "$FOUND_CONN_ID" --argjson i "$IDX" \                                                
                 '.ConnectionReferences[$i].ConnectionId = $id' "$TMP" > "${TMP}.2" && mv "${TMP}.2" "$TMP"
             else
               echo "  WARNING: No matching connection id found for $CONNECTOR_TOKEN. Will remain blank."
