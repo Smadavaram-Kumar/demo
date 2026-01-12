@@ -11,7 +11,7 @@ on:
       solution_type:
         description: 'Type of solution to import: managed or unmanaged'
         required: true
-        default: 'managed'
+        default: 'unmanaged'
         type: choice
         options:
           - managed
