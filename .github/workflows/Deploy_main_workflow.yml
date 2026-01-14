@@ -15,14 +15,13 @@ on:
         type: choice
         options:
           - managed
-          - unmanaged
-          
-      #dev_env_url:               
-       # description: 'Dev environment URL'
-       # required: true
-      #test_env_url:             
-       # description: 'Test environment URL'
-       # required: true
+          - unmanaged     
+      dev_env_url:               
+        description: 'Dev environment URL'
+        required: true
+      test_env_url:             
+        description: 'Test environment URL'
+        required: true
 
 env:
 
@@ -33,15 +32,15 @@ env:
   AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
   AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
   AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
-  #DEV_ENV_URL: ${{ github.event.inputs.dev_env_url }}
-  #TEST_ENV_URL: ${{ github.event.inputs.test_env_url }}
+  DEV_ENV_URL: ${{ github.event.inputs.dev_env_url }}
+  TEST_ENV_URL: ${{ github.event.inputs.test_env_url }}
   
   # -------------------------
   # DEV AND TEST URL'S
   # -------------------------
 
-  DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
-  TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+  #DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
+  #TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
 
   # -------------------------
   # BASE AND TARGET URL'S
