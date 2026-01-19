@@ -1,0 +1,377 @@
+name: Env Var Dep Set
+
+run-name: environment_variable_deploy_setting
+
+on:
+  workflow_dispatch:
+    inputs:
+      solution_name:
+        description: 'Solution unique name (not display name).'
+        required: true
+      solution_type:
+        description: 'Type of solution to import: managed or unmanaged'
+        required: true
+        default: 'unmanaged'
+        type: choice
+        options:
+          - managed
+          - unmanaged     
+      dev_env_url:               
+        description: 'Dev environment URL'
+        required: true
+      test_env_url:             
+        description: 'Test environment URL'
+        required: true
+
+env:
+
+  # -------------------------
+  # SPN INFORMATION
+  # -------------------------
+  
+  AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+  DEV_ENV_URL: ${{ github.event.inputs.dev_env_url }}
+  TEST_ENV_URL: ${{ github.event.inputs.test_env_url }}
+  
+  # -------------------------
+  # DEV AND TEST URL'S
+  # -------------------------
+
+  #DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
+  #TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+
+  # -------------------------
+  # BASE AND TARGET URL'S
+  # -------------------------
+
+  #DEV_ENV_URL: 'https://org0d2311bd.crm.dynamics.com'     
+  #TEST_ENV_URL: 'https://org5bef66f8.crm.dynamics.com'
+  
+  # -------------------------
+  # FOLDERS THAT WILL GET CREATED DURING WORKFLOW RUN
+  # -------------------------
+  
+  EXPORT_FOLDER: ./exported
+  MANAGED_FOLDER: ./exported/managed
+  UNMANAGED_FOLDER: ./exported/unmanaged
+  UNPACKED_FOLDER: ./exported/unpacked
+
+  SOLUTION_ZIP_NAME: ${{ github.event.inputs.solution_name }}.zip
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # -------------------------
+      # SOURCE CONTROL CHECKOUT
+      # -------------------------
+      - name: Checkout  # PULLS THE REPO CODE INTO RUNNER  
+        uses: actions/checkout@v5
+
+      # -------------------------
+      # INSTALL POWER PLATFORM CLI
+      # -------------------------
+      - name: Install Power Platform CLI # -INSTALLS THE CLI INTO RUNNER IN A TEMP FOLDER
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+
+      # -------------------------
+      # ENSURE NEEDED FOLDERS EXIST
+      # -------------------------
+      - name: Ensure folders  # - CREATES FOLDERS
+        run: |
+          mkdir -p $EXPORT_FOLDER $MANAGED_FOLDER $UNPACKED_FOLDER
+
+
+
+      # -------------------------
+      # EXPORT UNMANAGED SOLUTION (FOR UNPACKING/INSPECTION)
+      # -------------------------
+      - name: Export solution from DEV
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ env.DEV_ENV_URL }}
+          app-id: ${{ env.AZURE_CLIENT_ID }}
+          client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          solution-name: ${{ github.event.inputs.solution_name }}
+          solution-output-file: ${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+          managed: false
+
+      # -------------------------
+      # EXPORT MANAGED SOLUTION (FOR IMPORT TO TEST ENV)
+      # -------------------------
+      - name: Export solution from DEV
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ env.DEV_ENV_URL }}
+          app-id: ${{ env.AZURE_CLIENT_ID }}
+          client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          solution-name: ${{ github.event.inputs.solution_name }}
+          solution-output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
+          managed: true
+
+      
+      # -------------------------
+      # UNPACK UNMANAGED SOLUTION FOR FLOW/WORKFLOW REVIEW
+      # -------------------------
+      - name: Unpack solution
+        run: |
+          "$POWERPLATFORMTOOLS_PACPATH" solution unpack \
+            --zipfile "${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+            --folder "${{ env.UNPACKED_FOLDER }}" \
+            --allowDelete
+          echo "====== [FULL DIRECTORY TREE OF UNPACKED SOLUTION] ======"
+          find "${{ env.UNPACKED_FOLDER }}" -print
+          echo ""
+
+
+      # -------------------------
+      # DEBUG: PRINT ALL .JSON AND .XML IN WORKFLOWS FOLDER
+      # -------------------------
+      - name: Show all files and content under Workflows
+        run: |
+          WORKFLOW_DIR="${{ env.UNPACKED_FOLDER }}/Workflows"
+          echo "====== [FILES IN Workflows] ======"
+          
+          if [ -d "$WORKFLOW_DIR" ]; then
+            ls -lh "$WORKFLOW_DIR"
+            
+            echo "====== [ALL CONTENT OF .json FILES IN Workflows] ======"
+            for f in "$WORKFLOW_DIR"/*.json; do
+              [ -f "$f" ] && (echo -e "\n--- FILE: $f ---\n"; cat "$f"; echo "")
+            done
+  
+            echo "====== [ALL CONTENT OF .xml FILES IN Workflows] ======"
+            for f in "$WORKFLOW_DIR"/*.xml; do
+              [ -f "$f" ] && (echo -e "\n--- FILE: $f ---\n"; cat "$f"; echo "")
+            done
+            
+          else
+            echo "(No Workflows folder)"
+          fi
+
+
+
+
+      # -------------------------
+      # DEBUG: PRINT ALL OTHER FOLDERS IN UNPACKED DIR
+      # -------------------------
+      - name: Show all other folders/files in unpacked
+        run: |
+          echo "====== [OTHER FOLDERS AND FILES IN UNPACKED] ======"
+          
+          UNPACKED_DIR="./exported/unpacked"
+          
+          # Loop over all items in the unpacked directory
+          for d in "$UNPACKED_DIR"/*; do
+            # Only process directories and skip 'Workflows'
+            if [ -d "$d" ] && [ "$d" != "$UNPACKED_DIR/Workflows" ]; then
+              echo "[DIR:] $d"
+              ls -lh "$d"
+              # Collect all files in this directory
+              shopt -s nullglob  # Prevents literal pattern if no matches
+              files=("$d"/*)
+              for f in "${files[@]}"; do
+                if [ -f "$f" ]; then
+                  echo "- $f"
+                  cat "$f"
+                  echo ""
+                fi
+              done
+              shopt -u nullglob
+            fi
+          done
+          
+          exit 0  # Always exit successfully for CI friendliness
+
+
+      # -------------------------
+      # CREATE SETTINGS.JSON
+      # -------------------------
+      - name: Create deployment settings
+        run: |
+          echo "Creating deployment settings JSON from managed solution..."
+          "$POWERPLATFORMTOOLS_PACPATH" solution create-settings \
+            --solution-zip "${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+            --settings-file "${{ env.MANAGED_FOLDER }}/settings.json"
+
+
+      # -------------------------
+      # CREATE DEPLOYMENT SETTINGS FILE (BASE)
+      # -------------------------
+      - name: Display settings.json contents
+        run: |
+          echo "Printing the whole setting file..."
+          if [ -f ./exported/managed/settings.json ]; then
+            cat ./exported/managed/settings.json
+          else
+            echo "(settings.json not found)"
+          fi
+
+
+      # -------------------------
+      # EXTRACT FLOW CONNECTION REFS (LogicalName extraction - FIXED)
+      # -------------------------
+      - name: Extract FLOW connection references
+        run: |
+          # Code Generated by Sidekick is for learning and experimentation purposes only.
+          WORKFLOW_DIR="${{ env.UNPACKED_FOLDER }}/Workflows"
+          OUTPUT="flow-connection-refs.txt"
+          if [ -d "$WORKFLOW_DIR" ]; then
+            jq -r '
+              .properties.connectionReferences // {} |
+              to_entries[] |
+              .value.connection.connectionReferenceLogicalName // empty
+            ' "$WORKFLOW_DIR"/*.json | sort -u > "$OUTPUT"
+          else
+            touch "$OUTPUT"
+          fi
+          echo "FLOW connection references (LogicalNames):"
+          cat "$OUTPUT"
+
+
+
+      # -------------------------
+      # AUTH TEST ENV
+      # -------------------------
+      - name: Authenticate to TEST
+        run: |
+          "$POWERPLATFORMTOOLS_PACPATH" auth create \
+            --name test \
+            --applicationId "${{ env.AZURE_CLIENT_ID }}" \
+            --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
+            --tenant "${{ env.AZURE_TENANT_ID }}" \
+            --environment "${{ env.TEST_ENV_URL }}" \
+            --accept-cleartext-caching
+
+          "$POWERPLATFORMTOOLS_PACPATH" auth select --name test
+
+      # -------------------------
+      # PATCH ONLY FLOW CONNECTION REFS
+      # -------------------------
+      - name: Patch ONLY flow connection refs
+        run: |
+          # Code Generated by Sidekick is for learning and experimentation purposes only.
+          
+          set -euo pipefail
+          
+          WORKFLOW_DIR="./exported/unpacked/Workflows"
+          SETTINGS_FILE="./exported/managed/settings.json"
+          TEST_ENV_URL="${{ env.TEST_ENV_URL }}"
+          PAC="$POWERPLATFORMTOOLS_PACPATH"
+          
+          # 1. Extract only the logical names from actual flows
+          FLOW_CONN_REFS="flow-connection-refs.txt"
+          if [ -d "$WORKFLOW_DIR" ]; then
+            jq -r '
+              .properties.connectionReferences // {} |                                 # Tries to extract the connectionReferences object from the JSON. If it doesn’t exist, uses an empty object instead.
+              to_entries[] |                                                           #Converts the JSON object to an array of key-value objects, then iterates over each key-value pair.
+              .value.connection.connectionReferenceLogicalName // empty                #For each entry, it tries to get the logical name of the connection reference; if absent, returns nothing.
+            ' "$WORKFLOW_DIR"/*.json | sort -u > "$FLOW_CONN_REFS"                     #Sorts and deduplicates the extracted logical names.
+          else
+            touch "$FLOW_CONN_REFS"                                                    #if the workflow directory does not exist, touch "$FLOW_CONN_REFS": Creates an empty flow-connection-refs.txt file.
+          fi
+          
+          echo "Flow logical names to patch:"
+          cat "$FLOW_CONN_REFS"
+          
+          # 2. Extract all Power Platform connections (export so we can search efficiently)
+          CONN_LIST_OUT="test-connections.txt"
+          $PAC connection list --environment "$TEST_ENV_URL" > "$CONN_LIST_OUT"
+          echo " ----------------------------------"
+          echo " Connections pulled from target env"
+          echo " ----------------------------------"
+          cat "$CONN_LIST_OUT"
+          echo " ----------------------------------"
+          echo " ----------------------------------"
+          
+          
+          # 3. For each flow-used logicalName, find its entry in settings.json and patch ONLY those
+          TMP="$SETTINGS_FILE.tmp"
+          cp "$SETTINGS_FILE" "$TMP"
+          
+          while read FLOW_LOGICAL; do                                                                             # Begins a loop: reads each line from the input file (later, $FLOW_CONN_REFS) and assigns it to the variable FLOW_LOGICAL.
+            [ -z "$FLOW_LOGICAL" ] && continue                                                                    # If FLOW_LOGICAL is empty (-z represents zero length), moves to the next iteration (continue). 
+            echo "Processing flow logical: $FLOW_LOGICAL"
+            # Find this logical in settings.json and extract connector id
+            IFS=' '                                                                                               # reset IFS
+            IDX=$(jq -r --arg r "$FLOW_LOGICAL" '                                                                 # Uses jq to find the index (key) of the connection reference in settings.json where the LogicalName matches FLOW_LOGICAL.If found, IDX is set to the key (index) for that entry.
+              .ConnectionReferences | to_entries[]
+              | select(.value.LogicalName==$r) | .key' "$SETTINGS_FILE")
+            [ -z "$IDX" ] && { echo "  Not found in settings.json, skipping."; continue; }                        #If IDX is empty (the logical name doesn't exist in the settings file), notify and skip this logical name.
+          
+            CONNECTOR_ID=$(jq -r --argjson i "$IDX" '.ConnectionReferences[$i].ConnectorId' "$SETTINGS_FILE")     # Extracts the ConnectorId for this logical name from the settings file.
+            CONNECTOR_TOKEN=$(basename "$CONNECTOR_ID")                                                           #Gets the last "token" (basename) of ConnectorId (e.g., strips path, keeps only the actual connector name).
+            echo "  Searching for test connection for connector: $CONNECTOR_TOKEN"
+          
+            MATCH_LINE=$(grep -i "$CONNECTOR_ID" "$CONN_LIST_OUT" | head -n1 || true)                             #Searches (grep -i) for the connector ID in the output file $CONN_LIST_OUT (a file with available connection instances, likely with IDs in the first column).
+            FOUND_CONN_ID=$(echo "$MATCH_LINE" | awk '{print $1}' | tr -d '[:space:]' | tr -d '\r' || true)       #Uses awk to extract the first column (presumably the connection ID), removes whitespace and carriage returns
+          
+            if [ -n "$FOUND_CONN_ID" ]; then
+              echo "  Found connection id: $FOUND_CONN_ID"
+              jq --arg id "$FOUND_CONN_ID" --argjson i "$IDX" \                                                
+                '.ConnectionReferences[$i].ConnectionId = $id' "$TMP" > "${TMP}.2" && mv "${TMP}.2" "$TMP"
+            else
+              echo "  WARNING: No matching connection id found for $CONNECTOR_TOKEN. Will remain blank."
+            fi
+          done < "$FLOW_CONN_REFS"
+          
+          mv "$TMP" "$SETTINGS_FILE"
+          echo "Patched settings file:"
+          cat "$SETTINGS_FILE"
+
+
+      # -------------------------
+      # PATCH ENV VAR VALUES: Value <- DefaultValue (if blank)
+      # -------------------------
+      - name: Patch EnvironmentVariables Value from DefaultValue
+        run: |
+          set -euo pipefail
+
+          SETTINGS_FILE="${{ env.MANAGED_FOLDER }}/settings.json"
+
+          jq '
+            .EnvironmentVariables |=
+              (map(
+                if (((.Value // "") | tostring | length) == 0)
+                then .Value = (.DefaultValue // "")
+                else .
+                end
+              ))
+          ' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
+
+          echo "Updated settings.json (Value filled from DefaultValue where blank):"
+          cat "$SETTINGS_FILE"
+
+
+
+
+
+      # -------------------------
+      # IMPORT SOLUTION
+      #--path "${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
+      # -------------------------
+      - name: Import solution using pac CLI
+        run: |
+          "$POWERPLATFORMTOOLS_PACPATH" auth create \
+            --applicationId "${{ env.AZURE_CLIENT_ID }}" \
+            --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
+            --tenant "${{ env.AZURE_TENANT_ID }}" \
+            --environment "${{ env.TEST_ENV_URL }}"
+
+          if [[ "${{ github.event.inputs.solution_type }}" == "managed" ]]; then
+            SOL_PATH="${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+          else
+            SOL_PATH="${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
+          fi
+      
+          "$POWERPLATFORMTOOLS_PACPATH" solution import \
+            --path "$SOL_PATH" \
+            --settings-file "${{ env.MANAGED_FOLDER }}/settings.json" \
+            --force-overwrite
