@@ -270,12 +270,12 @@ jobs:
           FLOW_CONN_REFS="flow-connection-refs.txt"
           if [ -d "$WORKFLOW_DIR" ]; then
             jq -r '
-              .properties.connectionReferences // {} |                                 
-              to_entries[] |                                                          
-              .value.connection.connectionReferenceLogicalName // empty                
-            ' "$WORKFLOW_DIR"/*.json | sort -u > "$FLOW_CONN_REFS"                     
+              .properties.connectionReferences // {} |
+              to_entries[] |
+              .value.connection.connectionReferenceLogicalName // empty
+            ' "$WORKFLOW_DIR"/*.json | sort -u > "$FLOW_CONN_REFS"
           else
-            touch "$FLOW_CONN_REFS"                                                    
+            touch "$FLOW_CONN_REFS"
           fi
           
           echo "Flow logical names to patch:"
@@ -296,25 +296,26 @@ jobs:
           TMP="$SETTINGS_FILE.tmp"
           cp "$SETTINGS_FILE" "$TMP"
           
-          while read FLOW_LOGICAL; do                                                                             
-            [ -z "$FLOW_LOGICAL" ] && continue                                                                     
+          while read FLOW_LOGICAL; do
+            [ -z "$FLOW_LOGICAL" ] && continue
             echo "Processing flow logical: $FLOW_LOGICAL"
             # Find this logical in settings.json and extract connector id
-            IFS=' '                                                                                               
-            IDX=$(jq -r --arg r "$FLOW_LOGICAL" '                                                                 
+            IFS=' ' # reset IFS
+            IDX=$(jq -r --arg r "$FLOW_LOGICAL" '
               .ConnectionReferences | to_entries[]
               | select(.value.LogicalName==$r) | .key' "$SETTINGS_FILE")
-            [ -z "$IDX" ] && { echo "  Not found in settings.json, skipping."; continue; }                        
+            [ -z "$IDX" ] && { echo "  Not found in settings.json, skipping."; continue; }
           
-            CONNECTOR_ID=$(jq -r --argjson i "$IDX" '.ConnectionReferences[$i].ConnectorId' "$SETTINGS_FILE")     
-            CONNECTOR_TOKEN=$(basename "$CONNECTOR_ID")                                                           
+            CONNECTOR_ID=$(jq -r --argjson i "$IDX" '.ConnectionReferences[$i].ConnectorId' "$SETTINGS_FILE")
+            CONNECTOR_TOKEN=$(basename "$CONNECTOR_ID")
             echo "  Searching for test connection for connector: $CONNECTOR_TOKEN"
           
-            MATCH_LINE=$(grep -i "$CONNECTOR_ID" "$CONN_LIST_OUT" | head -n1 || true)                             
-            FOUND_CONN_ID=$(echo "$MATCH_LINE" | awk '{print $1}' | tr -d '[:space:]' | tr -d '\r' || true)       
+            MATCH_LINE=$(grep -i "$CONNECTOR_ID" "$CONN_LIST_OUT" | head -n1 || true)
+            FOUND_CONN_ID=$(echo "$MATCH_LINE" | awk '{print $1}' | tr -d '[:space:]' | tr -d '\r' || true)
+          
             if [ -n "$FOUND_CONN_ID" ]; then
               echo "  Found connection id: $FOUND_CONN_ID"
-              jq --arg id "$FOUND_CONN_ID" --argjson i "$IDX" \                                                
+              jq --arg id "$FOUND_CONN_ID" --argjson i "$IDX" \
                 '.ConnectionReferences[$i].ConnectionId = $id' "$TMP" > "${TMP}.2" && mv "${TMP}.2" "$TMP"
             else
               echo "  WARNING: No matching connection id found for $CONNECTOR_TOKEN. Will remain blank."
