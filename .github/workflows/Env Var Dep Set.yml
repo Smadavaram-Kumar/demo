@@ -188,6 +188,26 @@ jobs:
             fi
           done
           
+          ENVVARS_DIR="$UNPACKED_DIR/environmentvariabledefinitions"
+          echo "====== [environmentvariabledefinitions: each definition folder] ======"
+          if [ -d "$ENVVARS_DIR" ]; then
+            for sub in "$ENVVARS_DIR"/*; do
+              [ -d "$sub" ] || continue
+              echo "[SUBDIR:] $sub"
+              ls -lh "$sub"
+          
+              shopt -s nullglob
+              for f in "$sub"/*.xml "$sub"/*.json; do
+                echo -e "\n--- FILE: $f ---\n"
+                cat "$f"
+                echo ""
+              done
+              shopt -u nullglob
+            done
+          else
+            echo "(No environmentvariabledefinitions folder)"
+          fi
+          
           exit 0  # Always exit successfully for CI friendliness
 
 
