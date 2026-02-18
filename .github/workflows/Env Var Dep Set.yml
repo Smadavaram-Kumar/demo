@@ -373,25 +373,3 @@ jobs:
 
 
 
-      # -------------------------
-      # IMPORT SOLUTION
-      #--path "${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}" \
-      # -------------------------
-      - name: Import solution using pac CLI
-        run: |
-          "$POWERPLATFORMTOOLS_PACPATH" auth create \
-            --applicationId "${{ env.AZURE_CLIENT_ID }}" \
-            --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
-            --tenant "${{ env.AZURE_TENANT_ID }}" \
-            --environment "${{ env.TEST_ENV_URL }}"
-
-          if [[ "${{ github.event.inputs.solution_type }}" == "managed" ]]; then
-            SOL_PATH="${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
-          else
-            SOL_PATH="${{ env.UNMANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}"
-          fi
-      
-          "$POWERPLATFORMTOOLS_PACPATH" solution import \
-            --path "$SOL_PATH" \
-            --settings-file "${{ env.MANAGED_FOLDER }}/settings.json" \
-            --force-overwrite
