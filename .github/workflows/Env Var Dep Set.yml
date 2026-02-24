@@ -116,7 +116,31 @@ jobs:
           solution-output-file: ${{ env.MANAGED_FOLDER }}/${{ env.SOLUTION_ZIP_NAME }}
           managed: true
 
-      
+      # -------------------------
+      # AUTH DEV ENV
+      # -------------------------
+      - name: Authenticate to TEST
+        run: |
+          "$POWERPLATFORMTOOLS_PACPATH" auth create \
+            --name test \
+            --applicationId "${{ env.AZURE_CLIENT_ID }}" \
+            --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
+            --tenant "${{ env.AZURE_TENANT_ID }}" \
+            
+          "$POWERPLATFORMTOOLS_PACPATH" solution list-settings \
+            --environment "${{ env.DEV_ENV_URL }}" \
+            --outputFile env-settings.json
+
+
+      - name: Display settings.json contents
+        run: |
+          echo "Printing the whole setting file..."
+          if [ -f ./env-settings.json ]; then
+            cat ./env-settings.json
+          else
+            echo "(env-settings.json not found)"
+          fi
+          
       # -------------------------
       # UNPACK UNMANAGED SOLUTION FOR FLOW/WORKFLOW REVIEW
       # -------------------------
@@ -129,6 +153,7 @@ jobs:
           echo "====== [FULL DIRECTORY TREE OF UNPACKED SOLUTION] ======"
           find "${{ env.UNPACKED_FOLDER }}" -print
           echo ""
+
 
 
       # -------------------------
