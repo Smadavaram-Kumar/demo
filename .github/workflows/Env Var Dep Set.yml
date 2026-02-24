@@ -136,7 +136,7 @@ jobs:
         run: |
           set -euo pipefail 
       
-          TOKEN=$(pac auth token)
+          TOKEN=$("$POWERPLATFORMTOOLS_PACPATH" auth token)
       
           curl -s \
             -H "Authorization: Bearer $TOKEN" \
