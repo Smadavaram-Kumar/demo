@@ -131,7 +131,32 @@ jobs:
             --clientSecret "${{ env.AZURE_CLIENT_SECRET }}" \
             --tenant "${{ env.AZURE_TENANT_ID }}" \
             --accept-cleartext-caching
+            
+      - name: Fetch Environment Variables
+        run: |
+          set -euo pipefail 
       
+          TOKEN=$(pac auth token)
+      
+          curl -s \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/json" \
+            "${{ env.DEV_ENV_URL }}/api/data/v9.2/environmentvariabledefinitions?$select=schemaname,defaultvalue" \
+            > definitions.json
+      
+          curl -s \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/json" \
+            "${{ env.DEV_ENV_URL }}/api/data/v9.2/environmentvariablevalues?$select=value,_environmentvariabledefinitionid_value" \
+            > values.json
+      
+          echo "Definitions:"
+          cat definitions.json
+      
+          echo "Values:"
+          cat values.json
+      
+
       - name: Export env var tables (data export)
         shell: bash
         run: |
