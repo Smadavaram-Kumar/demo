@@ -105,69 +105,6 @@ jobs:
           managed: false
 
 
-
-      - name: Azure login (service principal)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ env.AZURE_CLIENT_ID }}
-          tenant-id: ${{ env.AZURE_TENANT_ID }}
-          allow-no-subscriptions: true
-          enable-AzPSSession: false
-          environment: azurecloud
-          audience: api://AzureADTokenExchange
-          auth-type: SERVICE_PRINCIPAL
-
-
-      - name: Fetch Environment Variables (Dataverse Web API)
-        shell: bash
-        env:
-          DATAVERSE_URL: ${{ env.DEV_ENV_URL }}
-        run: |
-          set -euo pipefail
-      
-          base="${{ env.DEV_ENV_URL }}"
-          TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
-      
-          fetch_paged () {
-            local url="$1"
-            local out="$2"
-            local tmp
-            tmp="$(mktemp)"
-            : > "$tmp"
-          
-            while [[ -n "${url:-}" ]]; do
-              resp="$(mktemp)"
-          
-              curl -fsS --retry 3 --retry-all-errors \
-                -H "Authorization: Bearer $TOKEN" \
-                -H "Accept: application/json" \
-                -H "OData-Version: 4.0" \
-                -H "OData-MaxVersion: 4.0" \
-                -H "If-None-Match: null" \
-                "$url" > "$resp"
-          
-              jq -c '.value[]' "$resp" >> "$tmp"
-              url="$(jq -r '."@odata.nextLink" // empty' "$resp")"
-              rm -f "$resp"
-            done
-          
-            jq -s '{value: .}' "$tmp" > "$out"
-            rm -f "$tmp"
-          }
-          
-          fetch_paged \
-            "$base/api/data/v9.2/environmentvariabledefinitions?\$select=environmentvariabledefinitionid,schemaname,defaultvalue" \
-            definitions.json
-          
-          fetch_paged \
-            "$base/api/data/v9.2/environmentvariablevalues?\$select=_environmentvariabledefinitionid_value,schemaname,value" \
-            values.json
-      
-          echo "Definitions:"
-          cat definitions.json
-      
-          echo "Values:"
-          cat values.json
       
 
       # -------------------------
@@ -398,6 +335,109 @@ jobs:
 
 
 
+      - name: Azure login (service principal)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+          enable-AzPSSession: false
+          environment: azurecloud
+          audience: api://AzureADTokenExchange
+          auth-type: SERVICE_PRINCIPAL
 
 
+      - name: Fetch Environment Variables (Dataverse Web API)
+        shell: bash
+        env:
+          DATAVERSE_URL: ${{ env.DEV_ENV_URL }}
+        run: |
+          set -euo pipefail
+      
+          base="${{ env.DEV_ENV_URL }}"
+          TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
+      
+          fetch_paged () {
+            local url="$1"
+            local out="$2"
+            local tmp
+            tmp="$(mktemp)"
+            : > "$tmp"
+          
+            while [[ -n "${url:-}" ]]; do
+              resp="$(mktemp)"
+          
+              curl -fsS --retry 3 --retry-all-errors \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Accept: application/json" \
+                -H "OData-Version: 4.0" \
+                -H "OData-MaxVersion: 4.0" \
+                -H "If-None-Match: null" \
+                "$url" > "$resp"
+          
+              jq -c '.value[]' "$resp" >> "$tmp"
+              url="$(jq -r '."@odata.nextLink" // empty' "$resp")"
+              rm -f "$resp"
+            done
+          
+            jq -s '{value: .}' "$tmp" > "$out"
+            rm -f "$tmp"
+          }
+          
+          fetch_paged \
+            "$base/api/data/v9.2/environmentvariabledefinitions?\$select=environmentvariabledefinitionid,schemaname,defaultvalue" \
+            definitions.json
+          
+          fetch_paged \
+            "$base/api/data/v9.2/environmentvariablevalues?\$select=_environmentvariabledefinitionid_value,schemaname,value" \
+            values.json
+      
+          echo "Definitions:"
+          cat definitions.json
+      
+          echo "Values:"
+          cat values.json
+      
+
+
+      - name: Patch settings.json EnvironmentVariables from values.json
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          SETTINGS_FILE="./exported/managed/settings.json"
+          VALUES_FILE="./values.json"
+      
+          test -f "$SETTINGS_FILE"
+          test -f "$VALUES_FILE"
+      
+          jq --slurpfile vals "$VALUES_FILE" '
+            ($vals[0].value | map({(.schemaname): .value}) | add // {}) as $bySchema
+            |
+            .EnvironmentVariables |= map(
+              if (.Value // "") == "" and ($bySchema[.SchemaName] != null)
+              then .Value = $bySchema[.SchemaName]
+              else .
+              end
+            )
+          ' "$SETTINGS_FILE" > "${SETTINGS_FILE}.patched"
+      
+          mv "${SETTINGS_FILE}.patched" "$SETTINGS_FILE"
+      
+          echo "Patched env var SchemaNames with non-empty Value:"
+          jq -r '.EnvironmentVariables[] | select((.Value//"")!="") | .SchemaName' "$SETTINGS_FILE" | sort -u
+
+
+
+      # -------------------------
+      # FINAL PATCHED SETTING FILE
+      # -------------------------
+      - name: Create deployment settings
+        run: |
+          echo "Printing the whole setting file after mapping both connections and environment variables..."
+          if [ -f ./exported/managed/settings.json ]; then
+            cat ./exported/managed/settings.json
+          else
+            echo "(settings.json not found)"
+          fi
 
