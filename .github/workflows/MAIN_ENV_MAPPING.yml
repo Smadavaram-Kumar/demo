@@ -125,7 +125,7 @@ jobs:
         run: |
           set -euo pipefail
       
-          base= ${{ env.DEV_ENV_URL }}
+          base= "${{ env.DEV_ENV_URL }}"
           TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
       
           fetch_paged () {
