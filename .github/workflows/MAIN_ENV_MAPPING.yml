@@ -160,7 +160,7 @@ jobs:
             definitions.json
           
           fetch_paged \
-            "$base/api/data/v9.2/environmentvariablevalues?\$select=_environmentvariabledefinitionid_value,value" \
+            "$base/api/data/v9.2/environmentvariablevalues?\$select=_environmentvariabledefinitionid_value,schemaname,value" \
             values.json
       
           echo "Definitions:"
