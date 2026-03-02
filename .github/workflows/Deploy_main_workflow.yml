@@ -311,7 +311,7 @@ jobs:
             echo "  Searching for test connection for connector: $CONNECTOR_TOKEN"
 
             
-            CONN_EMAIL_NAME="sm@M365x83721890.onmicrosoft.com"
+            CONN_EMAIL_NAME="smk@M365x83721890.onmicrosoft.com"
             MATCH_LINE=$(grep -iF "$CONNECTOR_ID" "$CONN_LIST_OUT" | grep -iF "$CONN_EMAIL_NAME" | head -n1 || true)
 
             
