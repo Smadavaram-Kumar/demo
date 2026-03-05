@@ -8,6 +8,9 @@ on:
       solution_name:
         description: 'Solution unique name (not display name).'
         required: true
+      Connection_owner_upn:
+        description: 'UPN of the account owning the connector connection in the target environment(e.g., sm@M365x83721890.onmicrosoft.com).'
+        required: true
       solution_type:
         description: 'Type of solution to import: managed or unmanaged'
         required: true
@@ -59,6 +62,7 @@ env:
   UNPACKED_FOLDER: ./exported/unpacked
 
   SOLUTION_ZIP_NAME: ${{ github.event.inputs.solution_name }}.zip
+  OWNER_NAME : ${{ github.event.inputs.Connection_owner_upn }}
 
 jobs:
   deploy:
@@ -311,7 +315,7 @@ jobs:
             echo "  Searching for test connection for connector: $CONNECTOR_TOKEN"
 
             
-            CONN_EMAIL_NAME="smk@M365x83721890.onmicrosoft.com"
+            CONN_EMAIL_NAME=${{ env.OWNER_NAME }}
             MATCH_LINE=$(grep -iF "$CONNECTOR_ID" "$CONN_LIST_OUT" | grep -iF "$CONN_EMAIL_NAME" | head -n1 || true)
 
             
