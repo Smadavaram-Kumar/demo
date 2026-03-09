@@ -129,7 +129,3 @@ jobs:
           echo "entra id values:"
           cat entraid.json
       
-
-            --path "$SOL_PATH" \
-            --settings-file "${{ env.MANAGED_FOLDER }}/settings.json" \
-            --force-overwrite
