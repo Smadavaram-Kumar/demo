@@ -117,6 +117,22 @@ jobs:
           curl -fsS "${authz[@]}" \
             "$base/api/data/v9.2/EntityDefinitions(LogicalName='aaduser')/Attributes?\$select=LogicalName,IsValidForRead&\$filter=IsValidForRead%20eq%20true&\$top=2000" \
             | jq -r '.value[].LogicalName' | sort
+
+
+          echo
+          echo "3) Optional: Try grabbing one aadusers record (non-fatal):"
+          resp="$(mktemp)"
+          code="$(
+            curl -sS -o "$resp" -w "%{http_code}" "${authz[@]}" \
+              "$base/api/data/v9.2/aadusers?\$top=1" || true
+          )"
+          echo "HTTP=$code"
+          if [[ "$code" == "200" ]]; then
+            jq -r '.value[0] | keys[]' "$resp" | sort
+          else
+            cat "$resp" | jq . || cat "$resp"
+          fi
+          rm -f "$resp"
           
           echo
           echo "3) (Optional) Grab one record without \$select, inspect available keys:"
