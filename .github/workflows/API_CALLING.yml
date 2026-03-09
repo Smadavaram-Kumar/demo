@@ -1,0 +1,135 @@
+name: API_CALLING
+
+permissions:
+  id-token: write
+  contents: read
+  
+on:
+  workflow_dispatch:
+  
+env:
+
+  # -------------------------
+  # SPN INFORMATION
+  # -------------------------
+  
+  AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+  AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+
+  
+  # -------------------------
+  # DEV AND TEST URL'S
+  # -------------------------
+
+  DEV_ENV_URL: 'https://org23b23f97.crm.dynamics.com'
+  TEST_ENV_URL: 'https://orgd93932c9.crm.dynamics.com'
+
+  # -------------------------
+  # BASE AND TARGET URL'S
+  # -------------------------
+
+  #DEV_ENV_URL: 'https://org0d2311bd.crm.dynamics.com'     
+  #TEST_ENV_URL: 'https://org5bef66f8.crm.dynamics.com'
+  
+  # -------------------------
+  # FOLDERS THAT WILL GET CREATED DURING WORKFLOW RUN
+  # -------------------------
+  
+  EXPORT_FOLDER: ./exported
+  MANAGED_FOLDER: ./exported/managed
+  UNMANAGED_FOLDER: ./exported/unmanaged
+  UNPACKED_FOLDER: ./exported/unpacked
+
+  SOLUTION_ZIP_NAME: ${{ github.event.inputs.solution_name }}.zip
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # -------------------------
+      # SOURCE CONTROL CHECKOUT
+      # -------------------------
+      - name: Checkout  # PULLS THE REPO CODE INTO RUNNER  
+        uses: actions/checkout@v5
+
+      # -------------------------
+      # INSTALL POWER PLATFORM CLI
+      # -------------------------
+      - name: Install Power Platform CLI # -INSTALLS THE CLI INTO RUNNER IN A TEMP FOLDER
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+
+      # -------------------------
+      # ENSURE NEEDED FOLDERS EXIST
+      # -------------------------
+      - name: Ensure folders  # - CREATES FOLDERS
+        run: |
+          mkdir -p $EXPORT_FOLDER $MANAGED_FOLDER $UNPACKED_FOLDER      
+
+          
+
+
+
+      - name: Azure login (service principal)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+          enable-AzPSSession: false
+          environment: azurecloud
+          audience: api://AzureADTokenExchange
+          auth-type: SERVICE_PRINCIPAL
+
+
+      - name: Fetch Environment Variables (Dataverse Web API)
+        shell: bash
+        env:
+          DATAVERSE_URL: ${{ env.DEV_ENV_URL }}
+        run: |
+          set -euo pipefail
+      
+          base="${{ env.DEV_ENV_URL }}"
+          TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
+      
+          fetch_paged () {
+            local url="$1"
+            local out="$2"
+            local tmp
+            tmp="$(mktemp)"
+            : > "$tmp"
+          
+            while [[ -n "${url:-}" ]]; do
+              resp="$(mktemp)"
+          
+              curl -fsS --retry 3 --retry-all-errors \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Accept: application/json" \
+                -H "OData-Version: 4.0" \
+                -H "OData-MaxVersion: 4.0" \
+                -H "If-None-Match: null" \
+                "$url" > "$resp"
+          
+              jq -c '.value[]' "$resp" >> "$tmp"
+              url="$(jq -r '."@odata.nextLink" // empty' "$resp")"
+              rm -f "$resp"
+            done
+          
+            jq -s '{value: .}' "$tmp" > "$out"
+            rm -f "$tmp"
+          }
+          
+          fetch_paged \
+            "$base/api/data/v9.2/microsoftentraid?\$select=displayname,userprinciplename" \
+            entraid.json
+      
+          echo "entra id values:"
+          cat entraid.json
+      
+
+            --path "$SOL_PATH" \
+            --settings-file "${{ env.MANAGED_FOLDER }}/settings.json" \
+            --force-overwrite
