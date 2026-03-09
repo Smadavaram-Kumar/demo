@@ -84,6 +84,28 @@ jobs:
           audience: api://AzureADTokenExchange
           auth-type: SERVICE_PRINCIPAL
 
+      - name: service document (Dataverse Web API)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base="https://org23b23f97.crm.dynamics.com"
+          TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
+          
+          authz=(-H "Authorization: Bearer $TOKEN"
+                 -H "Accept: application/json"
+                 -H "OData-Version: 4.0"
+                 -H "OData-MaxVersion: 4.0"
+                 -H "If-None-Match: null")
+          
+          echo "Checking service document for entity sets..."
+          curl -fsS "${authz[@]}" "$base/api/data/v9.2/" | jq -r '.value[].name' | grep -Ei 'aad|entra|microsoft' || true
+          
+          echo "Checking metadata for aaduser EntitySetName..."
+          curl -fsS "${authz[@]}" \
+            "$base/api/data/v9.2/EntityDefinitions?\$select=LogicalName,EntitySetName&\$filter=LogicalName%20eq%20%27aaduser%27" \
+            | jq .
+
 
       - name: Fetch Environment Variables (Dataverse Web API)
         shell: bash
@@ -123,7 +145,7 @@ jobs:
           }
           
           fetch_paged \
-            "$base/api/data/v9.2/microsoftentraid?\$select=displayname,userprinciplename" \
+            "$base/api/data/v9.2/aadusers?\$select=displayname,userprincipalname" \
             entraid.json
       
           echo "entra id values:"
