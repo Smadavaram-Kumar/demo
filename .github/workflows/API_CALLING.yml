@@ -107,6 +107,24 @@ jobs:
             | jq .
 
 
+          echo "1) Show the 400 body (so we know which column is wrong):"
+          curl -sS "${authz[@]}" \
+            "$base/api/data/v9.2/aadusers?\$select=displayname,userprincipalname&\$top=1" \
+            | jq . || true
+          
+          echo
+          echo "2) List readable attribute logical names for aaduser (use these in \$select):"
+          curl -fsS "${authz[@]}" \
+            "$base/api/data/v9.2/EntityDefinitions(LogicalName='aaduser')/Attributes?\$select=LogicalName,IsValidForRead&\$filter=IsValidForRead%20eq%20true&\$top=2000" \
+            | jq -r '.value[].LogicalName' | sort
+          
+          echo
+          echo "3) (Optional) Grab one record without \$select, inspect available keys:"
+          curl -fsS "${authz[@]}" \
+            "$base/api/data/v9.2/aadusers?\$top=1" \
+            | jq -r '.value[0] | keys[]' | sort
+
+
       - name: Fetch Environment Variables (Dataverse Web API)
         shell: bash
         env:
