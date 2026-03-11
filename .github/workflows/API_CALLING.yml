@@ -84,6 +84,43 @@ jobs:
           audience: api://AzureADTokenExchange
           auth-type: SERVICE_PRINCIPAL
 
+
+      - name: service document 222 (Dataverse Web API)
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          normalize_guid () {
+            local g="$1"
+            if [[ "$g" =~ ^[0-9a-fA-F]{32}$ ]]; then
+              echo "${g:0:8}-${g:8:4}-${g:12:4}-${g:16:4}-${g:20:12}" | tr 'A-F' 'a-f'
+            else
+              echo "$g" | tr 'A-F' 'a-f'
+            fi
+          }
+          
+          base="https://orgd93932c9.crm.dynamics.com"
+          cr_guid_raw="d2ebe7346b3d4d9eb7e2022e6c78f003"
+          cr_guid="$(normalize_guid "$cr_guid_raw")"
+          
+          DV_TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
+          
+          url="$base/api/data/v9.2/connectionreferences?\$select=connectionreferencelogicalname,createdon,_createdby_value,connectionid,connectionreferenceid&\$filter=connectionreferenceid%20eq%20${cr_guid}&\$expand=createdby(\$select=fullname,domainname,internalemailaddress)"
+          
+          echo "::group::Dataverse response (org2 raw)"
+          http_code="$(curl -sS -o resp.json -w "%{http_code}" -H "Authorization: Bearer $DV_TOKEN" -H "Accept: application/json" "$url")"
+          cat resp.json | jq . || cat resp.json
+          echo "::endgroup::"
+          
+          if [[ "$http_code" != "200" ]]; then
+            echo "Dataverse HTTP $http_code"
+            exit 1
+          fi
+          
+          cat resp.json | jq -r '.value[0].createdby.domainname // .value[0].createdby.internalemailaddress // "UPN not found"'
+
+
+
       - name: service document (Dataverse Web API)
         shell: bash
         run: |
