@@ -103,7 +103,21 @@ jobs:
 
           echo "$resp" | jq -r '.value[0].createdby.domainname // .value[0].createdby.internalemailaddress // "UPN not found"'
          
+
+          base="https://orgd93932c9.crm.dynamics.com"
+          crlname="d2ebe7346b3d4d9eb7e2022e6c78f003"
+          url="$base/api/data/v9.2/connectionreferences?\$select=connectionreferencelogicalname,createdon,_createdby_value,connectionid&\$filter=connectionid%20eq%20'${crlname}'&\$expand=createdby(\$select=fullname,domainname,internalemailaddress)"
           
+          echo "::group::Dataverse response (raw)"
+          resp="$(curl -fsS -H "Authorization: Bearer $DV_TOKEN" -H "Accept: application/json" "$url")"
+          echo "$resp" | jq .
+          echo "::endgroup::"
+
+          echo "$resp" | jq -r '.value[0].createdby.domainname // .value[0].createdby.internalemailaddress // "UPN not found"'
+
+
+
+
           set -euo pipefail
 
           base="https://org23b23f97.crm.dynamics.com"
