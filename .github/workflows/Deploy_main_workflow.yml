@@ -347,8 +347,11 @@ jobs:
             echo "UPN : $CONN_EMAIL_NAME"
             MATCH_LINE=$(grep -iF "$CONNECTOR_ID" "$CONN_LIST_OUT" | grep -iF "$CONN_EMAIL_NAME" | head -n1 || true)
 
-            
-            #MATCH_LINE=$(grep -i "$CONNECTOR_ID" "$CONN_LIST_OUT" | head -n1 || true)
+            if [ CONNECTOR_TOKEN == "shared_office365"]; then
+              echo "Default Mapping is happening"
+              MATCH_LINE=$(grep -i "$CONNECTOR_ID" "$CONN_LIST_OUT" | head -n1 || true)
+            fi
+              
             FOUND_CONN_ID=$(echo "$MATCH_LINE" | awk '{print $1}' | tr -d '[:space:]' | tr -d '\r' || true)
           
             if [ -n "$FOUND_CONN_ID" ]; then
