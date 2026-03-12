@@ -110,6 +110,89 @@ jobs:
           id="$(echo "$CONN_ID" | tr -d '-' | tr 'A-F' 'a-f')"
           "$POWERPLATFORMTOOLS_PACPATH" connection list | awk -v id="$id" 'BEGIN{IGNORECASE=1} $1==id {print $2; exit 0} END{exit 2}'
 
+      - name: service document 1 (Dataverse Web API)
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          base="https://org23b23f97.crm.dynamics.com"
+          crlname="new_sharedexcelonlinebusiness_3ff4e"
+          
+          DV_TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
+          
+          url="$base/api/data/v9.2/connectionreferences?\$select=connectionreferencelogicalname,createdon,_createdby_value,connectionid&\$filter=connectionreferencelogicalname%20eq%20'${crlname}'&\$expand=createdby(\$select=domainname,internalemailaddress)"
+          
+          echo "::group::Dataverse response (raw)"
+          resp="$(curl -fsS -H "Authorization: Bearer $DV_TOKEN" -H "Accept: application/json" "$url")"
+          echo "$resp" | jq .
+          echo "::endgroup::"
+
+          echo "$resp" | jq -r '.value[0].createdby.domainname // .value[0].createdby.internalemailaddress // "UPN not found"'
+         
+
+          base="https://orgd93932c9.crm.dynamics.com"
+          crlname="d2ebe7346b3d4d9eb7e2022e6c78f003"
+          DV_TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
+          url="$base/api/data/v9.2/connectionreferences?\$select=connectionreferencelogicalname,createdon,_createdby_value,connectionid&\$filter=connectionid%20eq%20'${crlname}'&\$expand=createdby(\$select=domainname,internalemailaddress)"
+          
+          echo "::group::Dataverse response (raw)"
+          resp="$(curl -fsS -H "Authorization: Bearer $DV_TOKEN" -H "Accept: application/json" "$url")"
+          echo "$resp" | jq .
+          echo "::endgroup::"
+
+          echo "$resp" | jq -r '.value[0].createdby.domainname // .value[0].createdby.internalemailaddress // "UPN not found"'
+
+          set -euo pipefail
+
+          base="https://org23b23f97.crm.dynamics.com"
+          TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
+          
+          authz=(-H "Authorization: Bearer $TOKEN"
+                 -H "Accept: application/json"
+                 -H "OData-Version: 4.0"
+                 -H "OData-MaxVersion: 4.0"
+                 -H "If-None-Match: null")
+          
+          echo "Checking service document for entity sets..."
+          curl -fsS "${authz[@]}" "$base/api/data/v9.2/" | jq -r '.value[].name' | grep -Ei 'aad|entra|microsoft' || true
+          
+          echo "Checking metadata for aaduser EntitySetName..."
+          curl -fsS "${authz[@]}" \
+            "$base/api/data/v9.2/EntityDefinitions?\$select=LogicalName,EntitySetName&\$filter=LogicalName%20eq%20%27aaduser%27" \
+            | jq .
+
+          echo "1) Show the 400 body (so we know which column is wrong):"
+          curl -sS "${authz[@]}" \
+            "$base/api/data/v9.2/aaduser?\$select=displayname,userprincipalname&\$top=1" \
+            | jq . || true
+          
+          echo
+          echo "2) List readable attribute logical names for aaduser (use these in \$select):"
+          curl -fsS "${authz[@]}" \
+            "$base/api/data/v9.2/EntityDefinitions(LogicalName='aaduser')/Attributes?\$select=LogicalName,IsValidForRead&\$filter=IsValidForRead%20eq%20true&\$top=2000" \
+            | jq -r '.value[].LogicalName' | sort
+
+          echo
+          echo "3) Optional: Try grabbing one aaduser record (non-fatal):"
+          resp="$(mktemp)"
+          code="$(
+            curl -sS -o "$resp" -w "%{http_code}" "${authz[@]}" \
+              "$base/api/data/v9.2/aaduser?\$top=1" || true
+          )"
+          echo "HTTP=$code"
+          if [[ "$code" == "200" ]]; then
+            jq -r '.value[0] | keys[]' "$resp" | sort
+          else
+            cat "$resp" | jq . || cat "$resp"
+          fi
+          rm -f "$resp"
+          
+          echo
+          echo "4) Grab one record without \$select, inspect available keys:"
+          curl -fsS "${authz[@]}" \
+            "$base/api/data/v9.2/aaduser?\$top=1" \
+            | jq -r '.value[0] | keys[]' | sort
+
       - name: service document (Dataverse Web API)
         shell: bash
         run: |
