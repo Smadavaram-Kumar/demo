@@ -256,6 +256,18 @@ jobs:
 
           "$POWERPLATFORMTOOLS_PACPATH" auth select --name test
 
+
+      - name: Azure login (service principal)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+          enable-AzPSSession: false
+          environment: azurecloud
+          audience: api://AzureADTokenExchange
+          auth-type: SERVICE_PRINCIPAL
+
       # -------------------------
       # PATCH ONLY FLOW CONNECTION REFS
       # -------------------------
@@ -314,8 +326,23 @@ jobs:
             CONNECTOR_TOKEN=$(basename "$CONNECTOR_ID")
             echo "  Searching for test connection for connector: $CONNECTOR_TOKEN"
 
+
+            base="${{ env.DEV_ENV_URL }}"
+            crlname="$FLOW_LOGICAL"
             
-            CONN_EMAIL_NAME=${{ env.OWNER_NAME }}
+            DV_TOKEN="$(az account get-access-token --resource "$base" --query accessToken -o tsv)"
+            
+            url="$base/api/data/v9.2/connectionreferences?\$select=connectionreferencelogicalname,createdon,_createdby_value,connectionid&\$filter=connectionreferencelogicalname%20eq%20'${crlname}'&\$expand=createdby(\$select=fullname,domainname,internalemailaddress)"
+            
+            echo "::group::Dataverse response (raw)"
+            resp="$(curl -fsS -H "Authorization: Bearer $DV_TOKEN" -H "Accept: application/json" "$url")"
+            echo "$resp" | jq .
+            echo "::endgroup::"
+  
+           
+            
+            CONN_EMAIL_NAME="$resp" | jq -r '.value[0].createdby.domainname // .value[0].createdby.internalemailaddress // "UPN not found"'
+            echo CONN_EMAIL_NAME
             MATCH_LINE=$(grep -iF "$CONNECTOR_ID" "$CONN_LIST_OUT" | grep -iF "$CONN_EMAIL_NAME" | head -n1 || true)
 
             
