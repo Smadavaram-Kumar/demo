@@ -11,8 +11,8 @@ env:
 
   # -------------------------
   # SPN INFORMATION
-  # -------------------------
-  
+  # ------------------------
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   AZURE_TENANT_ID: ${{ secrets.PP_TENANT_ID }}
   AZURE_CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
   AZURE_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
